@@ -64,11 +64,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .brand-name span { color: #64b0e0; font-weight: 400; }
 .brand-caption { margin: 6px 0 0; color: #8ba1a9; font: 500 9px/1 "IBM Plex Mono", monospace; letter-spacing: .14em; }
 
+.delete-all-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 37px; margin: 14px 0 12px; border: 1px solid rgb(255 255 255 / 16%); color: #b8c9cf; background: transparent; font: 500 11px/1 "IBM Plex Mono", monospace; letter-spacing: .03em; transition: border-color 160ms var(--ease-out), color 160ms var(--ease-out), background 160ms var(--ease-out); }
+.delete-all-button:hover { border-color: #e18383; color: #fff; background: rgb(201 75 75 / 18%); }
+
 .new-note-button, .primary-ink-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 0; transition: transform 160ms var(--ease-out), background 160ms var(--ease-out); }
 .new-note-button { min-height: 45px; width: 100%; padding: 0 11px 0 14px; color: #fff; background: var(--blue); box-shadow: 0 9px 18px rgb(0 0 0 / 16%); text-align: left; font-size: 13px; font-weight: 600; }
 .new-note-button span { flex: 1; }
 .new-note-button:hover { background: #2380c6; }
 .new-note-button:active, .primary-ink-button:active { transform: scale(.97); }
+.delete-note-button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 8px; border: 1px solid #e1d6d5; color: #9a4a4a; background: #fff; font: 500 11px/1 "Noto Sans JP", sans-serif; transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out); }
+.delete-note-button:hover { border-color: #cd7777; background: #fff5f4; }
+.deletion-dialog { max-width: 430px; border: 1px solid #d9d7d0; border-radius: 0; color: var(--ink); background: #fff; box-shadow: 0 22px 60px rgb(20 38 53 / 24%); }
+.deletion-dialog [data-slot="alert-dialog-header"] { gap: 10px; }
+.deletion-dialog [data-slot="alert-dialog-title"] { font: 700 19px/1.35 "Noto Sans JP", sans-serif; letter-spacing: -.03em; }
+.deletion-dialog [data-slot="alert-dialog-description"] { color: #5f696c; line-height: 1.75; }
+.deletion-dialog-icon { display: grid; width: 36px; height: 36px; place-items: center; color: #b64949; background: #fff1f0; }
+.deletion-dialog [data-slot="alert-dialog-footer"] { margin-top: 8px; }
+.deletion-dialog [data-slot="alert-dialog-cancel"], .confirm-delete-button { min-height: 39px; border-radius: 0; font: 600 12px/1 "Noto Sans JP", sans-serif; }
+.confirm-delete-button { border: 1px solid #b64949; color: #fff; background: #b64949; }
+.confirm-delete-button:hover { background: #943939; }
 kbd { border: 1px solid rgb(255 255 255 / 25%); color: #bed8e7; padding: 2px 5px; font: 10px/1 "IBM Plex Mono", monospace; }
 
 .search-field { display: flex; align-items: center; gap: 8px; height: 42px; margin: 22px 0 19px; padding: 0 11px; border: 1px solid rgb(255 255 255 / 12%); color: #8ba1a9; background: rgb(255 255 255 / 5%); }

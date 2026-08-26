@@ -21,6 +21,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DiffWorkbench from "@/components/DiffWorkbench";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getNoteLabel, formatDateTime, makeNote, MemoNote, STORAGE_KEY } from "@/lib/memo";
 
 function loadNotes(): MemoNote[] {
@@ -50,6 +60,7 @@ export default function Home() {
   const [isBodySearchOpen, setIsBodySearchOpen] = useState(false);
   const [bodySearch, setBodySearch] = useState("");
   const [activeMatch, setActiveMatch] = useState(0);
+  const [deletionTarget, setDeletionTarget] = useState<"active" | "all" | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -67,7 +78,11 @@ export default function Home() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    if (notes.length) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
     setSavedAt(new Date().toISOString());
   }, [notes, isHydrated]);
 
@@ -168,13 +183,29 @@ export default function Home() {
     );
   };
 
-  const deleteNote = () => {
-    if (!activeNote) return;
-    if (!window.confirm(`「${getNoteLabel(activeNote)}」を削除しますか？`)) return;
-    setNotes((current) => current.filter((note) => note.id !== activeNote.id));
-    setActiveId((current) => (current === activeNote.id ? null : current));
-    toast.success("メモを削除しました");
+  const completeDeletion = () => {
+    if (deletionTarget === "active" && activeNote) {
+      const remainingNotes = notes.filter((note) => note.id !== activeNote.id);
+      setNotes(remainingNotes);
+      setActiveId(remainingNotes[0]?.id ?? null);
+      closeBodySearch();
+      toast.success("メモを削除しました");
+    }
+
+    if (deletionTarget === "all") {
+      setNotes([]);
+      setActiveId(null);
+      closeBodySearch();
+      toast.success("すべてのメモを削除しました");
+    }
+
+    setDeletionTarget(null);
   };
+
+  const deletionDialogTitle = deletionTarget === "all" ? "すべてのメモを削除しますか？" : "このメモを削除しますか？";
+  const deletionDialogDescription = deletionTarget === "all"
+    ? `この端末に保存されている ${notes.length} 件のメモをすべて削除します。この操作は取り消せません。`
+    : `「${activeNote ? getNoteLabel(activeNote) : "このメモ"}」をこの端末から削除します。この操作は取り消せません。`;
 
   return (
     <div className="app-shell">
@@ -234,6 +265,13 @@ export default function Home() {
           )}
         </nav>
 
+        {notes.length > 0 && (
+          <button className="delete-all-button" type="button" onClick={() => setDeletionTarget("all")}>
+            <Trash2 size={15} aria-hidden="true" />
+            <span>全メモを削除</span>
+          </button>
+        )}
+
         <div className="local-only-note">
           <span className="local-pulse" aria-hidden="true" />
           <p><b>この端末だけに保存中</b><br />サーバーやDBへ送信しません</p>
@@ -245,6 +283,7 @@ export default function Home() {
           <div className="breadcrumb"><Files size={15} aria-hidden="true" /> <span>MY NOTES</span> <i>/</i> <b>{activeNote ? getNoteLabel(activeNote) : "新規文書"}</b></div>
           <div className="editor-actions">
             {activeNote && <button className="body-search-trigger" type="button" onClick={openBodySearch} title="本文内を検索（Ctrl または Cmd + F）"><Search size={15} aria-hidden="true" /><span>本文内を検索</span><kbd>⌘ F</kbd></button>}
+            {activeNote && <button className="delete-note-button" type="button" onClick={() => setDeletionTarget("active")} title="現在のメモを削除"><Trash2 size={15} aria-hidden="true" /><span>現在のメモを削除</span></button>}
             <div className="save-indicator" aria-live="polite">
               <Check size={15} aria-hidden="true" />
               <span>{savedAt ? "ローカルに保存済み" : "準備中"}</span>
@@ -316,6 +355,20 @@ export default function Home() {
         <DiffWorkbench notes={notes} activeId={activeId} />
         <div className="compare-footnote"><GripVertical size={16} /><span>変更の全文を含む差分をエクスポートできます</span></div>
       </aside>
+
+      <AlertDialog open={deletionTarget !== null} onOpenChange={(open) => !open && setDeletionTarget(null)}>
+        <AlertDialogContent className="deletion-dialog">
+          <AlertDialogHeader>
+            <span className="deletion-dialog-icon"><Trash2 size={19} aria-hidden="true" /></span>
+            <AlertDialogTitle>{deletionDialogTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{deletionDialogDescription}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction className="confirm-delete-button" onClick={completeDeletion}>削除する</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
