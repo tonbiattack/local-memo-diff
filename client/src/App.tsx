@@ -14,7 +14,7 @@ import Home from "./pages/Home";
 
 function Router() {
   return (
-    <WouterRouter base={import.meta.env.BASE_URL}>
+    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
       <Switch>
         <Route path={"/"} component={Home} />
         <Route path={"/404"} component={NotFound} />
