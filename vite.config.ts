@@ -205,7 +205,15 @@ function vitePluginStorageProxy(): Plugin {
 
 const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStorageProxy()];
 
+// GitHub Pages のプロジェクトサイトでは /<repository>/ 配下から配信される。
+// <owner>.github.io リポジトリの場合のみドメイン直下を使用する。
+const pagesRepository = process.env.GITHUB_REPOSITORY?.split("/")[1];
+const pagesBase = process.env.GITHUB_ACTIONS && pagesRepository && !pagesRepository.endsWith(".github.io")
+  ? `/${pagesRepository}/`
+  : "/";
+
 export default defineConfig({
+  base: pagesBase,
   plugins,
   resolve: {
     alias: {
