@@ -6,6 +6,8 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   FilePlus2,
   Files,
@@ -15,6 +17,7 @@ import {
   PencilLine,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import DiffWorkbench from "@/components/DiffWorkbench";
@@ -48,9 +51,14 @@ export default function Home() {
   const [notes, setNotes] = useState<MemoNote[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [isBodySearchOpen, setIsBodySearchOpen] = useState(false);
+  const [bodySearch, setBodySearch] = useState("");
+  const [activeMatch, setActiveMatch] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const bodySearchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = loadNotes().sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
@@ -77,6 +85,13 @@ export default function Home() {
         event.preventDefault();
         createNote();
       }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f" && activeNote) {
+        event.preventDefault();
+        openBodySearch();
+      }
+      if (event.key === "Escape" && isBodySearchOpen) {
+        closeBodySearch();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -89,12 +104,61 @@ export default function Home() {
     return notes.filter((note) => `${note.title}\n${note.body}`.toLowerCase().includes(keyword));
   }, [notes, query]);
 
+  const bodyMatches = useMemo(() => {
+    if (!activeNote || !bodySearch.trim()) return [];
+    const source = activeNote.body.toLocaleLowerCase();
+    const target = bodySearch.toLocaleLowerCase();
+    const positions: number[] = [];
+    let index = source.indexOf(target);
+    while (index !== -1) {
+      positions.push(index);
+      index = source.indexOf(target, index + target.length);
+    }
+    return positions;
+  }, [activeNote, bodySearch]);
+
+  useEffect(() => {
+    setActiveMatch(0);
+  }, [activeNote?.id, bodySearch]);
+
+  useEffect(() => {
+    if (activeMatch >= bodyMatches.length && bodyMatches.length) setActiveMatch(0);
+  }, [activeMatch, bodyMatches.length]);
+
   const createNote = () => {
     const note = makeNote();
     setNotes((current) => [note, ...current]);
     setActiveId(note.id);
     setQuery("");
     window.setTimeout(() => titleRef.current?.select(), 0);
+  };
+
+  const openBodySearch = () => {
+    setIsBodySearchOpen(true);
+    window.setTimeout(() => bodySearchRef.current?.focus(), 0);
+  };
+
+  const closeBodySearch = () => {
+    setIsBodySearchOpen(false);
+    setBodySearch("");
+    setActiveMatch(0);
+    bodyRef.current?.setSelectionRange(0, 0);
+  };
+
+  const moveBodyMatch = (offset: number) => {
+    if (!bodyMatches.length) {
+      toast.message("本文に一致する文字列はありません");
+      return;
+    }
+    const next = (activeMatch + offset + bodyMatches.length) % bodyMatches.length;
+    setActiveMatch(next);
+    window.requestAnimationFrame(() => {
+      const textarea = bodyRef.current;
+      const start = bodyMatches[next];
+      if (!textarea || start === undefined) return;
+      textarea.focus();
+      textarea.setSelectionRange(start, start + bodySearch.length);
+    });
   };
 
   const updateNote = (patch: Partial<Pick<MemoNote, "title" | "body">>) => {
@@ -176,10 +240,13 @@ export default function Home() {
       <main className="editor-stage">
         <header className="editor-header">
           <div className="breadcrumb"><Files size={15} aria-hidden="true" /> <span>MY NOTES</span> <i>/</i> <b>{activeNote ? getNoteLabel(activeNote) : "新規文書"}</b></div>
-          <div className="save-indicator" aria-live="polite">
-            <Check size={15} aria-hidden="true" />
-            <span>{savedAt ? "ローカルに保存済み" : "準備中"}</span>
-            <span className="save-time">{savedAt ? formatDateTime(savedAt) : ""}</span>
+          <div className="editor-actions">
+            {activeNote && <button className="body-search-trigger" type="button" onClick={openBodySearch} title="本文内を検索（Ctrl または Cmd + F）"><Search size={15} aria-hidden="true" /><span>本文内を検索</span><kbd>⌘ F</kbd></button>}
+            <div className="save-indicator" aria-live="polite">
+              <Check size={15} aria-hidden="true" />
+              <span>{savedAt ? "ローカルに保存済み" : "準備中"}</span>
+              <span className="save-time">{savedAt ? formatDateTime(savedAt) : ""}</span>
+            </div>
           </div>
         </header>
 
@@ -189,6 +256,12 @@ export default function Home() {
               <span>NOTE / {activeNote.id.slice(0, 8).toUpperCase()}</span>
               <span><Clock3 size={14} aria-hidden="true" /> 更新 {formatDateTime(activeNote.updatedAt)}</span>
             </div>
+            {isBodySearchOpen && <div className="in-note-search" role="search" aria-label="本文内を検索">
+              <label className="in-note-search-input"><Search size={15} aria-hidden="true" /><input ref={bodySearchRef} value={bodySearch} onChange={(event) => setBodySearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); moveBodyMatch(event.shiftKey ? -1 : 1); } }} placeholder="本文内を検索" aria-label="検索する文字列" /></label>
+              <span className={`match-counter ${bodySearch && !bodyMatches.length ? "is-empty" : ""}`} aria-live="polite">{bodySearch ? `${bodyMatches.length ? activeMatch + 1 : 0} / ${bodyMatches.length}` : "検索語を入力"}</span>
+              <div className="match-move-buttons"><button type="button" disabled={!bodyMatches.length} onClick={() => moveBodyMatch(-1)} aria-label="前の一致箇所へ"><ChevronUp size={15} /></button><button type="button" disabled={!bodyMatches.length} onClick={() => moveBodyMatch(1)} aria-label="次の一致箇所へ"><ChevronDown size={15} /></button></div>
+              <button className="close-search-button" type="button" onClick={closeBodySearch} aria-label="本文内検索を閉じる"><X size={16} /></button>
+            </div>}
             <input
               ref={titleRef}
               className="memo-title"
@@ -203,6 +276,7 @@ export default function Home() {
                 {Array.from({ length: Math.max(10, activeNote.body.split("\n").length + 4) }, (_, index) => <span key={index}>{index + 1}</span>)}
               </div>
               <textarea
+                ref={bodyRef}
                 className="memo-body"
                 value={activeNote.body}
                 onChange={(event) => updateNote({ body: event.target.value })}
