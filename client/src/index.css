@@ -74,6 +74,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .new-note-button:active, .primary-ink-button:active { transform: scale(.97); }
 .delete-note-button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 8px; border: 1px solid #e1d6d5; color: #9a4a4a; background: #fff; font: 500 11px/1 "Noto Sans JP", sans-serif; transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out); }
 .delete-note-button:hover { border-color: #cd7777; background: #fff5f4; }
+.auto-title-notice { margin: -3px 0 12px; color: #6b7f88; font: 500 10px/1.4 "IBM Plex Mono", "Noto Sans JP", monospace; letter-spacing: .02em; }
 .deletion-dialog { max-width: 430px; border: 1px solid #d9d7d0; border-radius: 0; color: var(--ink); background: #fff; box-shadow: 0 22px 60px rgb(20 38 53 / 24%); }
 .deletion-dialog [data-slot="alert-dialog-header"] { gap: 10px; }
 .deletion-dialog [data-slot="alert-dialog-title"] { font: 700 19px/1.35 "Noto Sans JP", sans-serif; letter-spacing: -.03em; }

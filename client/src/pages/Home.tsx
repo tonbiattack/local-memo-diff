@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getNoteLabel, formatDateTime, makeNote, MemoNote, STORAGE_KEY } from "@/lib/memo";
+import { getBodyTitle, getNoteLabel, formatDateTime, makeNote, MemoNote, STORAGE_KEY } from "@/lib/memo";
 
 function loadNotes(): MemoNote[] {
   try {
@@ -39,15 +39,21 @@ function loadNotes(): MemoNote[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is MemoNote =>
-        item &&
-        typeof item.id === "string" &&
-        typeof item.title === "string" &&
-        typeof item.body === "string" &&
-        typeof item.createdAt === "string" &&
-        typeof item.updatedAt === "string",
-    );
+    return parsed
+      .filter(
+        (item): item is MemoNote =>
+          item &&
+          typeof item.id === "string" &&
+          typeof item.title === "string" &&
+          typeof item.body === "string" &&
+          typeof item.createdAt === "string" &&
+          typeof item.updatedAt === "string",
+      )
+      .map((note) =>
+        note.title === "無題のメモ" && note.body.trim()
+          ? { ...note, title: "" }
+          : note,
+      );
   } catch {
     return [];
   }
@@ -109,6 +115,8 @@ export default function Home() {
   });
 
   const activeNote = notes.find((note) => note.id === activeId) ?? null;
+  const activeBodyTitle = activeNote ? getBodyTitle(activeNote.body) : "";
+  const isUsingBodyTitle = Boolean(activeNote && !activeNote.title.trim() && activeBodyTitle);
   const filteredNotes = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return notes;
@@ -310,8 +318,9 @@ export default function Home() {
               value={activeNote.title}
               onChange={(event) => updateNote({ title: event.target.value })}
               aria-label="メモのタイトル"
-              placeholder="タイトルなし"
+              placeholder={activeBodyTitle || "タイトルなし"}
             />
+            {isUsingBodyTitle && <p className="auto-title-notice">本文の1行目をタイトルとして表示中</p>}
             <div className="editor-rule" />
             <div className="body-composer">
               <div className="line-count" aria-hidden="true">
