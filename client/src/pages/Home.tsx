@@ -3,7 +3,7 @@
  * 紙面の余白と製図ネイビーのレールで、書く作業に焦点を戻す。
  */
 
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -22,10 +22,6 @@ import {
 import { toast } from "sonner";
 import DiffWorkbench from "@/components/DiffWorkbench";
 import { getNoteLabel, formatDateTime, makeNote, MemoNote, STORAGE_KEY } from "@/lib/memo";
-
-const logoUrl = "/manus-storage/memo-diff-logo_504365f0.png";
-const paperTextureUrl = "/manus-storage/blueprint-paper-texture_f8b09c83.png";
-const workspaceImageUrl = "/manus-storage/diff-workspace-abstract_c230f8a8.png";
 
 function loadNotes(): MemoNote[] {
   try {
@@ -181,10 +177,17 @@ export default function Home() {
   };
 
   return (
-    <div className="app-shell" style={{ "--paper-texture": `url(${paperTextureUrl})`, "--workspace-image": `url(${workspaceImageUrl})` } as CSSProperties}>
+    <div className="app-shell">
       <aside className="sidebar" aria-label="メモ一覧">
         <div className="brand-lockup">
-          <img className="brand-mark" src={logoUrl} alt="memo diff" />
+          <span className="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 6.5H28L36 14.5V39.5H12V6.5Z" fill="#EAF5FA" stroke="#64B0E0" strokeWidth="2" />
+              <path d="M28 6.5V14.5H36" stroke="#64B0E0" strokeWidth="2" />
+              <path d="M18 22H30M18 28H30" stroke="#1769AA" strokeWidth="2" strokeLinecap="round" />
+              <path d="M16.5 35.5L21 31L24 34L31.5 26.5" stroke="#78C39B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
           <div>
             <p className="brand-name">memo <span>/</span> diff</p>
             <p className="brand-caption">LOCAL WORKSPACE</p>

@@ -58,7 +58,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 
 .sidebar { display: flex; flex-direction: column; min-height: 100vh; padding: 28px 16px 18px; color: #e6eef0; background: var(--navy); }
 .brand-lockup { display: flex; align-items: center; gap: 11px; padding: 0 8px 26px; }
-.brand-mark { width: 43px; height: 43px; padding: 2px; object-fit: contain; border-left: 3px solid #64b0e0; filter: brightness(1.12) contrast(1.05); }
+.brand-mark { display: grid; width: 43px; height: 43px; flex: 0 0 43px; place-items: center; border-left: 3px solid #64b0e0; }
+.brand-mark svg { width: 39px; height: 39px; overflow: visible; }
 .brand-name { position: relative; margin: 0; color: #fff; font: 600 20px/1 "DM Sans", sans-serif; letter-spacing: -0.07em; }
 .brand-name span { color: #64b0e0; font-weight: 400; }
 .brand-caption { margin: 6px 0 0; color: #8ba1a9; font: 500 9px/1 "IBM Plex Mono", monospace; letter-spacing: .14em; }
