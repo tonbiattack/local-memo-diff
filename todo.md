@@ -68,3 +68,15 @@
 - [x] デモURL、機能、技術スタック、設計、利用方法をREADMEへ整理する。
 - [x] 内容を確認し、GitHubへ反映する。
 - [x] GitHubのAbout欄に公開デモURLを設定する。
+
+## Qiita記事下書き
+
+- [x] Qiitaリポジトリの投稿ルールと既存記事を確認する。
+- [x] memo / diffの設計・実装を解説する投稿前記事を作成する。
+- [x] 記事を検証し、Qiitaリポジトリへ反映する。
+
+## Cloudflare Web Analytics
+
+- [x] CloudflareのWeb Analytics設定とサイトトークンを確認する。
+- [x] アプリに解析スニペットを追加する。
+- [ ] ビルド・GitHub Pages反映・計測開始を確認する。

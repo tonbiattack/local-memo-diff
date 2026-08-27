@@ -21,7 +21,7 @@
 | 行単位Diff | 2つのメモを選択し、追加・削除・共通行をGit風の形式で全行比較できます。 |
 | 差分エクスポート | Git風プレーンテキスト（`.txt`）と、色分け・行番号付きの自己完結HTMLを出力できます。 |
 | 安全な削除 | 現在のメモの削除と全メモ削除を用意し、どちらも対象と取り消し不可を示す確認ダイアログを表示します。 |
-| プライバシー重視 | ログイン、データベース、外部API、バックエンドは使用しません。メモ本文や差分を外部サーバーへ送信しません。 |
+| プライバシー重視 | ログイン、データベース、バックエンドは使用しません。メモ本文や差分を外部サーバーへ送信しません。 |
 
 ## Tech Stack
 
@@ -34,6 +34,7 @@
 | 永続化 | Browser `localStorage` |
 | ホスティング | GitHub Pages |
 | CI/CD | GitHub Actions |
+| アクセス解析 | Cloudflare Web Analytics |
 
 ## Architecture
 
@@ -49,11 +50,17 @@ React + TypeScript
   └─ Export generator (.txt / .html)
   ↓
 localStorage
+
+Browser
+  ↓
+Cloudflare Web Analytics (page views only)
 ```
 
 > **Data locality:** All memo data stays in the browser profile that created it.
 
 この設計により、サーバー運用、ユーザー認証、データベース管理を不要にしています。一方で、ブラウザのサイトデータを消去するとメモも失われ、端末やブラウザをまたいだ同期は行われません。
+
+閲覧数とページビューの把握にはCloudflare Web Analyticsを利用しています。計測スニペットはページの読み込み時だけに実行し、メモ本文・タイトル・差分を解析イベントとして送信する機能は実装していません。
 
 ## Why This Exists
 
@@ -133,6 +140,7 @@ local-memo-diff/
 | 消去 | ブラウザのサイトデータ削除、またはアプリ内の全メモ削除で消去されます。 |
 | 容量 | ブラウザの保存領域に依存します。大量・巨大なメモには適しません。 |
 | 推奨 | 大切なメモは `.txt` またはHTMLで定期的にエクスポートしてください。 |
+| アクセス解析 | Cloudflare Web Analyticsで訪問数とページビューを計測します。メモの内容は計測対象に含めません。 |
 
 ## Roadmap Ideas
 

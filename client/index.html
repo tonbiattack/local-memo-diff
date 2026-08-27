@@ -11,6 +11,10 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script defer src="%VITE_ANALYTICS_ENDPOINT%/umami" data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+    <!-- Cloudflare Web Analytics: 訪問状況のみを計測し、メモ本文や差分を送信しない。 -->
+    <script
+      type="module"
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token":"40f6263ac64f2bb85503470e58a4ceb"}'></script>
   </body>
 </html>
