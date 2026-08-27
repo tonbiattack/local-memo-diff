@@ -94,15 +94,23 @@ export default function Home() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+      const key = event.key.toLowerCase();
+      const isMac = /mac/i.test(navigator.platform);
+      const modifierKey = isMac ? event.metaKey : event.ctrlKey;
+
+      if (modifierKey && key === "s") {
         event.preventDefault();
         toast.success("この端末に保存しました");
       }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "n") {
+      // Ctrl+N/⌘N are reserved by browsers for opening a new window.
+      // Use Alt+N on Windows/Linux so the browser cannot consume the shortcut.
+      const isNewNoteShortcut = isMac ? event.altKey && !event.metaKey : event.altKey && !event.ctrlKey;
+      if (isNewNoteShortcut && key === "n") {
         event.preventDefault();
+        event.stopPropagation();
         createNote();
       }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f" && activeNote) {
+      if (modifierKey && key === "f" && activeNote) {
         event.preventDefault();
         openBodySearch();
       }
@@ -236,7 +244,7 @@ export default function Home() {
         <button className="new-note-button" type="button" onClick={createNote}>
           <FilePlus2 aria-hidden="true" />
           <span>新しいメモ</span>
-          <kbd>⌘ N</kbd>
+          <kbd>{/mac/i.test(navigator.platform) ? "⌥ N" : "Alt N"}</kbd>
         </button>
 
         <label className="search-field">
