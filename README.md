@@ -1,58 +1,148 @@
 # memo / diff
 
-**memo / diff** は、ブラウザの `localStorage` だけで動作する React + Vite 製のメモアプリです。データベース、ログイン、バックエンドを使わず、メモを2件選んで行単位で比較できます。差分は Git 風のプレーンテキスト、または全文を確認しやすい単体HTMLファイルとして書き出せます。
+> **memo / diff** is a lightweight memo and text-diff tool that runs entirely in your browser.
+> **No login. No database. No backend.**
 
-## 主な機能
+ブラウザだけで動く、ローカル保存型のメモ・差分比較アプリです。本文はこの端末・このブラウザの `localStorage` にのみ保存され、メモを2件選択して行単位の差分を確認できます。
+
+## Demo
+
+**[公開デモを開く](https://tonbiattack.github.io/local-memo-diff/)**
+
+> デモで作成したメモは、アクセスしたブラウザだけに保存されます。共有端末では機密情報を保存しないでください。
+
+## Features
 
 | 機能 | 内容 |
 | --- | --- |
-| ローカルメモ | 作成・編集・検索・削除ができ、すべて現在のブラウザの `localStorage` に保存されます。 |
-| 自動保存 | 編集内容は変更時に端末内へ保存されます。`Ctrl` / `Cmd` + `S` では保存済み状態を確認できます。 |
-| 行単位の比較 | 2つのメモを比較し、追加行・削除行・共通行を Git 風に全行表示します。 |
-| `.txt` 出力 | `--- a/...` と `+++ b/...` ヘッダ、および `+` / `-` / 半角スペースを含む差分テキストを保存します。 |
-| HTML出力 | 追加・削除の背景色、左右の行番号、全行を含む自己完結型HTMLを保存します。WinMergeのようにブラウザで開き、そのまま印刷もできます。 |
+| ローカルメモ | メモの作成・編集・一覧検索を行えます。内容は自動保存されます。 |
+| 本文由来の自動タイトル | タイトルが未入力なら、本文の最初の非空行を見出しとして表示します。手入力のタイトルがあれば、そちらを優先します。 |
+| 本文内検索 | 開いているメモ本文から文字列を検索し、一致件数の確認と前後移動ができます。 |
+| 行単位Diff | 2つのメモを選択し、追加・削除・共通行をGit風の形式で全行比較できます。 |
+| 差分エクスポート | Git風プレーンテキスト（`.txt`）と、色分け・行番号付きの自己完結HTMLを出力できます。 |
+| 安全な削除 | 現在のメモの削除と全メモ削除を用意し、どちらも対象と取り消し不可を示す確認ダイアログを表示します。 |
+| プライバシー重視 | ログイン、データベース、外部API、バックエンドは使用しません。メモ本文や差分を外部サーバーへ送信しません。 |
 
-> **プライバシーに関する注意:** 保存先は現在のブラウザプロファイルです。ブラウザのサイトデータを消去するとメモも失われます。端末・ブラウザ間の同期は行いません。
+## Tech Stack
 
-## ローカルで実行する
+| 領域 | 採用技術 |
+| --- | --- |
+| UI | React 19 |
+| 言語 | TypeScript |
+| ビルドツール | Vite 7 |
+| スタイル | Tailwind CSS 4 / CSS |
+| 永続化 | Browser `localStorage` |
+| ホスティング | GitHub Pages |
+| CI/CD | GitHub Actions |
 
-Node.js 22 以降と pnpm 10 を用意し、以下を実行します。
+## Architecture
+
+このアプリケーションにバックエンドはありません。すべてのデータ処理と保存はブラウザ内で完結します。
+
+```text
+Browser
+  ↓
+React + TypeScript
+  ├─ Memo editor
+  ├─ In-note search
+  ├─ Line-based diff engine
+  └─ Export generator (.txt / .html)
+  ↓
+localStorage
+```
+
+> **Data locality:** All memo data stays in the browser profile that created it.
+
+この設計により、サーバー運用、ユーザー認証、データベース管理を不要にしています。一方で、ブラウザのサイトデータを消去するとメモも失われ、端末やブラウザをまたいだ同期は行われません。
+
+## Why This Exists
+
+軽量な下書き・比較作業には、アカウント作成やクラウド同期が必ずしも必要ではありません。`memo / diff` は、変更前後の文章を短時間で見比べ、必要なら差分をそのまま共有・保管できる、小さく独立した作業空間として作成しました。
+
+特に、仕様メモ、議事録の推敲、リリースノート、プロンプト、設定ファイルの変更点を確認する用途を想定しています。
+
+## Local Development
+
+Node.js 22 以降と pnpm 10 を用意してください。プロジェクトではロックファイルに合わせるため、pnpmの利用を推奨します。
 
 ```bash
+git clone https://github.com/tonbiattack/local-memo-diff.git
+cd local-memo-diff
 pnpm install
 pnpm dev
 ```
 
-型チェックとGitHub Pages向けの静的ビルドは次のとおりです。
+開発サーバー起動後、表示されたローカルURLをブラウザで開いてください。
+
+pnpmを使わない場合は、同等の操作をnpmでも実行できます。
+
+```bash
+npm install
+npm run dev
+```
+
+### Checks and Builds
+
+型チェックとGitHub Pages向けの静的ビルドは、次のコマンドで実行できます。
 
 ```bash
 pnpm run check
 pnpm run build:pages
 ```
 
-生成物は `dist/public` に配置されます。`build:pages` は `404.html` も作るため、GitHub Pagesで未知のパスにアクセスした際にもアプリのエントリポイントを返せます。
+`build:pages` は `dist/public` に静的ファイルを出力し、GitHub Pagesでのフォールバック用に `404.html` も生成します。
 
-## GitHub Pagesへの公開手順
+## Project Structure
 
-リポジトリへこのプロジェクトをプッシュした後、GitHubの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選択してください。`main` ブランチへのプッシュで `.github/workflows/deploy.yml` が実行され、`dist/public` をPagesアーティファクトとして公開します。[1] [2]
+```text
+local-memo-diff/
+├─ client/
+│  ├─ public/
+│  │  └─ favicon.svg             # GitHub Pages対応のSVGファビコン
+│  └─ src/
+│     ├─ components/
+│     │  └─ DiffWorkbench.tsx    # 差分表示・エクスポート
+│     ├─ lib/
+│     │  ├─ diff.ts              # 行単位Diffロジック
+│     │  └─ memo.ts              # メモモデル・自動タイトル
+│     ├─ pages/
+│     │  └─ Home.tsx             # メモ編集ワークスペース
+│     └─ index.css               # UIスタイル
+├─ .github/workflows/
+│  └─ deploy.yml                 # GitHub Pagesデプロイ
+├─ vite.config.ts                 # GitHub Pagesのbase path設定
+└─ README.md
+```
 
-この設定は、通常のプロジェクトサイト（`https://<owner>.github.io/<repository>/`）ではリポジトリ名をViteの `base` に自動反映します。ユーザーまたは組織のルートサイト（`<owner>.github.io`）の場合は `/` を利用します。[2]
+## Deploy to GitHub Pages
 
-| 項目 | 設定済みの内容 |
+このリポジトリには、`main` ブランチへのpushでGitHub Pagesへデプロイするワークフローが含まれています。
+
+1. GitHubで **Settings → Pages → Build and deployment → Source** を開きます。
+2. **GitHub Actions** を公開元として選択します。
+3. `main` ブランチへpushします。
+
+ワークフローは型チェック、Viteビルド、Pagesアーティファクトのアップロード、デプロイを順に実行します。Viteの公開パスは、プロジェクトサイトではリポジトリ名を含むパスに自動対応します。[1] [2]
+
+## Limitations and Privacy
+
+| 項目 | 内容 |
 | --- | --- |
-| 起動条件 | `main` への push、または Actions タブからの手動実行 |
-| Node.js | 22 |
-| パッケージ管理 | pnpm 10、ロックファイル固定インストール |
-| 静的ビルド | `pnpm run check` と `pnpm run build:pages` |
-| 公開対象 | `dist/public` |
+| 保存先 | 現在のブラウザプロファイルの `localStorage` |
+| 同期 | なし。別ブラウザ・別端末には引き継がれません。 |
+| 消去 | ブラウザのサイトデータ削除、またはアプリ内の全メモ削除で消去されます。 |
+| 容量 | ブラウザの保存領域に依存します。大量・巨大なメモには適しません。 |
+| 推奨 | 大切なメモは `.txt` またはHTMLで定期的にエクスポートしてください。 |
 
-## データ構造と制約
+## Roadmap Ideas
 
-各メモはID、タイトル、本文、作成日時、更新日時を持つJSONとして `localStorage` に格納します。差分はブラウザ内で最長共通部分列（LCS）を使って算出し、比較結果や本文が外部へ送信されることはありません。
+今後の候補として、JSONバックアップ／復元、ダークテーマ、メモのスナップショット履歴、ショートカット一覧、Diff表示モードの拡張を検討しています。
 
-ただし、ブラウザの保存領域には容量上限があり、大量・巨大なメモの保存には適していません。重要な内容は、HTMLまたはテキストとして定期的にエクスポートしてください。
+## License
 
-## 参照資料
+This project is licensed under the [MIT License](./LICENSE).
+
+## References
 
 [1]: https://docs.github.com/ja/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages "GitHub Pages のカスタムワークフロー"
 [2]: https://vite.dev/guide/static-deploy "Vite — 静的サイトのデプロイ"
