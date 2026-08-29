@@ -21,13 +21,11 @@ type DiffWorkbenchProps = { notes: MemoNote[]; activeId: string | null };
 type CompareItem = {
   id: string;
   label: string;
-  documentTitle: string;
   body: string;
   isSnapshot?: boolean;
 };
 
-const toDocument = (item: CompareItem) =>
-  `# ${item.documentTitle}\n\n${item.body}`;
+const toDocument = (item: CompareItem) => `# ${item.label}\n\n${item.body}`;
 
 const getSafeFileName = (item: CompareItem) =>
   item.label
@@ -79,16 +77,10 @@ export default function DiffWorkbench({ notes, activeId }: DiffWorkbenchProps) {
   const compareItems = useMemo<CompareItem[]>(
     () =>
       notes.flatMap(note => [
-        {
-          id: note.id,
-          label: getNoteLabel(note),
-          documentTitle: getNoteLabel(note),
-          body: note.body,
-        },
+        { id: note.id, label: getNoteLabel(note), body: note.body },
         ...(note.snapshots ?? []).map(snapshot => ({
           id: `${note.id}:snapshot:${snapshot.id}`,
-          label: `${snapshot.title || getNoteLabel(note)} / 保存 ${formatDateTime(snapshot.createdAt)}`,
-          documentTitle: snapshot.title || getNoteLabel(note),
+          label: `${getNoteLabel(note)} / 保存 ${formatDateTime(snapshot.createdAt)}`,
           body: snapshot.body,
           isSnapshot: true,
         })),
