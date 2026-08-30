@@ -28,6 +28,7 @@ type DiffWorkbenchProps = {
   activeId: string | null;
   viewMode: DiffViewMode;
   onViewModeChange: (mode: DiffViewMode) => void;
+  comparisonRequest?: { fromId: string; toId: string; id: string };
 };
 type CompareItem = {
   id: string;
@@ -87,6 +88,7 @@ export default function DiffWorkbench({
   activeId,
   viewMode,
   onViewModeChange,
+  comparisonRequest,
 }: DiffWorkbenchProps) {
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
@@ -132,6 +134,17 @@ export default function DiffWorkbench({
         : compareItems.find(item => item.id !== active)?.id || active
     );
   }, [compareItems, activeId]);
+
+  useEffect(() => {
+    if (!comparisonRequest) return;
+    if (
+      compareItems.some(item => item.id === comparisonRequest.fromId) &&
+      compareItems.some(item => item.id === comparisonRequest.toId)
+    ) {
+      setFromId(comparisonRequest.fromId);
+      setToId(comparisonRequest.toId);
+    }
+  }, [compareItems, comparisonRequest]);
 
   const from = compareItems.find(item => item.id === fromId) ?? compareItems[0];
   const to = compareItems.find(item => item.id === toId) ?? compareItems[0];
