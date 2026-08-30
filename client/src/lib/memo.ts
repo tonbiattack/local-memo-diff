@@ -2,12 +2,20 @@
  * Style context: 編集机のブループリント。データは小さく、境界は明快に保つ。
  */
 
+export type MemoSnapshot = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+};
+
 export type MemoNote = {
   id: string;
   title: string;
   body: string;
   createdAt: string;
   updatedAt: string;
+  snapshots?: MemoSnapshot[];
 };
 
 export const STORAGE_KEY = "local-memo-diff:notes:v1";
@@ -23,11 +31,13 @@ export const formatDateTime = (value: string) =>
 export const getBodyTitle = (body: string) => {
   const firstMeaningfulLine = body
     .split(/\r?\n/)
-    .map((line) => line.replace(/\s+/g, " ").trim())
+    .map(line => line.replace(/\s+/g, " ").trim())
     .find(Boolean);
 
   if (!firstMeaningfulLine) return "";
-  return firstMeaningfulLine.length > 48 ? `${firstMeaningfulLine.slice(0, 48)}…` : firstMeaningfulLine;
+  return firstMeaningfulLine.length > 48
+    ? `${firstMeaningfulLine.slice(0, 48)}…`
+    : firstMeaningfulLine;
 };
 
 export const getNoteLabel = (note: Pick<MemoNote, "title" | "body">) =>
@@ -41,5 +51,13 @@ export const makeNote = (): MemoNote => {
     body: "",
     createdAt: now,
     updatedAt: now,
+    snapshots: [],
   };
 };
+
+export const makeSnapshot = (note: MemoNote): MemoSnapshot => ({
+  id: crypto.randomUUID(),
+  title: getNoteLabel(note),
+  body: note.body,
+  createdAt: new Date().toISOString(),
+});
