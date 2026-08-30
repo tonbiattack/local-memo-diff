@@ -3,7 +3,7 @@
  * 紙面の余白と製図ネイビーのレールで、書く作業に焦点を戻す。
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   Check,
   ChevronDown,
@@ -43,6 +43,12 @@ import {
   STORAGE_KEY,
 } from "@/lib/memo";
 
+const MIN_COMPARE_WIDTH = 280;
+const MAX_COMPARE_WIDTH = 640;
+
+const clampCompareWidth = (width: number) =>
+  Math.min(MAX_COMPARE_WIDTH, Math.max(MIN_COMPARE_WIDTH, width));
+
 function loadNotes(): MemoNote[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -81,6 +87,7 @@ export default function Home() {
   );
   const [isHydrated, setIsHydrated] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [compareWidth, setCompareWidth] = useState(352);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const bodySearchRef = useRef<HTMLInputElement>(null);
@@ -276,6 +283,49 @@ export default function Home() {
     setDeletionTarget(null);
   };
 
+  const startCompareResize = (event: React.PointerEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const handle = event.currentTarget;
+    const startX = event.clientX;
+    const startWidth = compareWidth;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const stopResize = () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener("pointermove", moveResize);
+      window.removeEventListener("pointerup", stopResize);
+      window.removeEventListener("pointercancel", stopResize);
+    };
+    const moveResize = (moveEvent: PointerEvent) => {
+      setCompareWidth(clampCompareWidth(startWidth - (moveEvent.clientX - startX)));
+    };
+
+    handle.setPointerCapture(event.pointerId);
+    window.addEventListener("pointermove", moveResize);
+    window.addEventListener("pointerup", stopResize);
+    window.addEventListener("pointercancel", stopResize);
+  };
+
+  const onCompareResizeKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setCompareWidth(current => clampCompareWidth(current + 24));
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setCompareWidth(current => clampCompareWidth(current - 24));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setCompareWidth(MIN_COMPARE_WIDTH);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setCompareWidth(MAX_COMPARE_WIDTH);
+    }
+  };
+
   const deletionDialogTitle =
     deletionTarget === "all"
       ? "すべてのメモを削除しますか？"
@@ -286,7 +336,10 @@ export default function Home() {
       : `「${activeNote ? getNoteLabel(activeNote) : "このメモ"}」をこの端末から削除します。この操作は取り消せません。`;
 
   return (
-    <div className="app-shell">
+    <div
+      className="app-shell"
+      style={{ "--compare-panel-width": `${compareWidth}px` } as CSSProperties}
+    >
       <aside className="sidebar" aria-label="メモ一覧">
         <div className="brand-lockup">
           <span className="brand-mark" aria-hidden="true">
@@ -609,6 +662,22 @@ export default function Home() {
           </section>
         )}
       </main>
+
+      <button
+        className="compare-resize-handle"
+        type="button"
+        role="separator"
+        aria-label="差分比較パネルの幅を変更"
+        aria-orientation="vertical"
+        aria-valuemin={MIN_COMPARE_WIDTH}
+        aria-valuemax={MAX_COMPARE_WIDTH}
+        aria-valuenow={compareWidth}
+        title="ドラッグして差分比較パネルの幅を変更"
+        onPointerDown={startCompareResize}
+        onKeyDown={onCompareResizeKeyDown}
+      >
+        <GripVertical size={16} aria-hidden="true" />
+      </button>
 
       <aside className="compare-stage" aria-label="差分比較">
         <div className="compare-topline">
