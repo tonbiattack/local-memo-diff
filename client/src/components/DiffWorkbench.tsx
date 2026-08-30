@@ -21,9 +21,14 @@ import {
   prefixFor,
   splitLines,
 } from "@/lib/diff";
-import { formatDateTime, getNoteLabel, MemoNote } from "@/lib/memo";
+import { DiffViewMode, formatDateTime, getNoteLabel, MemoNote } from "@/lib/memo";
 
-type DiffWorkbenchProps = { notes: MemoNote[]; activeId: string | null };
+type DiffWorkbenchProps = {
+  notes: MemoNote[];
+  activeId: string | null;
+  viewMode: DiffViewMode;
+  onViewModeChange: (mode: DiffViewMode) => void;
+};
 type CompareItem = {
   id: string;
   label: string;
@@ -77,10 +82,14 @@ const renderHtmlDocument = (
 <body><main class="sheet"><header><h1>memo / diff</h1><p>--- a/${escapeHtml(getSafeFileName(from))}.txt &nbsp; +++ b/${escapeHtml(getSafeFileName(to))}.txt</p></header><table aria-label="全文差分"><tbody>${rows}</tbody></table></main></body></html>`;
 };
 
-export default function DiffWorkbench({ notes, activeId }: DiffWorkbenchProps) {
+export default function DiffWorkbench({
+  notes,
+  activeId,
+  viewMode,
+  onViewModeChange,
+}: DiffWorkbenchProps) {
   const [fromId, setFromId] = useState("");
   const [toId, setToId] = useState("");
-  const [viewMode, setViewMode] = useState<"unified" | "side">("unified");
 
   const compareItems = useMemo<CompareItem[]>(
     () =>
@@ -267,14 +276,14 @@ export default function DiffWorkbench({ notes, activeId }: DiffWorkbenchProps) {
         <button
           type="button"
           className={viewMode === "unified" ? "is-selected" : ""}
-          onClick={() => setViewMode("unified")}
+          onClick={() => onViewModeChange("unified")}
         >
           Unified
         </button>
         <button
           type="button"
           className={viewMode === "side" ? "is-selected" : ""}
-          onClick={() => setViewMode("side")}
+          onClick={() => onViewModeChange("side")}
         >
           Side-by-Side
         </button>

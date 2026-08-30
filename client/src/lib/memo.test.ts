@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createMemoBackup, parseMemoBackup, type MemoNote } from "./memo";
+import {
+  createMemoBackup,
+  parseMemoBackup,
+  type MemoNote,
+} from "./memo";
 
 const note: MemoNote = {
   id: "note-1",
@@ -12,10 +16,15 @@ const note: MemoNote = {
 
 describe("memo backups", () => {
   it("round-trips notes in the versioned backup format", () => {
-    const backup = createMemoBackup([note]);
+    const settings = { compareWidth: 480, diffViewMode: "side" as const, theme: "dark" as const };
+    const backup = createMemoBackup([note], settings);
 
-    expect(backup.version).toBe(1);
-    expect(parseMemoBackup(backup)).toEqual([note]);
+    expect(backup.version).toBe(2);
+    expect(parseMemoBackup(backup)).toEqual({ notes: [note], settings });
+  });
+
+  it("keeps v1 backups importable without settings", () => {
+    expect(parseMemoBackup({ version: 1, notes: [note] })).toEqual({ notes: [note] });
   });
 
   it("rejects malformed backups", () => {
