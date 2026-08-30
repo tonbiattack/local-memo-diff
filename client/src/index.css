@@ -513,6 +513,12 @@ kbd {
 .note-action-button:hover {
   color: var(--blue);
 }
+.note-action-button kbd {
+  border: 1px solid #c6d2d5;
+  color: #77909a;
+  background: #fffdf8;
+  font-size: 9px;
+}
 .body-search-trigger {
   display: inline-flex;
   align-items: center;
@@ -1159,6 +1165,11 @@ html.dark .body-search-trigger {
   color: #a9c0c9;
 }
 html.dark .body-search-trigger kbd {
+  border-color: #40545f;
+  color: #a8c0ca;
+  background: #1a2830;
+}
+html.dark .note-action-button kbd {
   border-color: #40545f;
   color: #a8c0ca;
   background: #1a2830;

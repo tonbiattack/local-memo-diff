@@ -128,7 +128,10 @@ export default function Home() {
       const isMac = /mac/i.test(navigator.platform);
       const modifierKey = isMac ? event.metaKey : event.ctrlKey;
 
-      if (modifierKey && key === "s") {
+      if (modifierKey && event.shiftKey && key === "s" && activeNote) {
+        event.preventDefault();
+        saveSnapshot();
+      } else if (modifierKey && key === "s") {
         event.preventDefault();
         toast.success("この端末に保存しました");
       }
@@ -556,10 +559,11 @@ export default function Home() {
                 className="note-action-button"
                 type="button"
                 onClick={saveSnapshot}
-                title="現在の内容をスナップショットとして保存"
+                title="現在の内容をスナップショットとして保存（Ctrl または Cmd + Shift + S）"
               >
                 <BookmarkPlus size={15} aria-hidden="true" />
                 <span>保存</span>
+                <kbd>{/mac/i.test(navigator.platform) ? "⌘ ⇧ S" : "Ctrl ⇧ S"}</kbd>
               </button>
             )}
             {activeNote && (
