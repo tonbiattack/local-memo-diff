@@ -19,7 +19,9 @@ import {
   GripVertical,
   PanelRightOpen,
   PencilLine,
+  Moon,
   Search,
+  Sun,
   Trash2,
   X,
 } from "lucide-react";
@@ -46,6 +48,7 @@ import {
   parseMemoBackup,
   STORAGE_KEY,
 } from "@/lib/memo";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const MIN_COMPARE_WIDTH = 280;
 const MAX_COMPARE_WIDTH = 640;
@@ -80,6 +83,7 @@ function loadNotes(): MemoNote[] {
 }
 
 export default function Home() {
+  const { theme, toggleTheme } = useTheme();
   const [notes, setNotes] = useState<MemoNote[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -515,6 +519,15 @@ export default function Home() {
             <i>/</i> <b>{activeNote ? getNoteLabel(activeNote) : "新規文書"}</b>
           </div>
           <div className="editor-actions">
+            <button
+              className="theme-toggle"
+              type="button"
+              onClick={toggleTheme}
+              title={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+              aria-label={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             {activeNote && (
               <button
                 className="body-search-trigger"
