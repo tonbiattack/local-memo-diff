@@ -147,6 +147,35 @@ textarea:focus-visible {
   color: #fff;
   background: rgb(201 75 75 / 18%);
 }
+.backup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 14px;
+}
+.backup-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  color: #b8c9cf;
+  background: transparent;
+  font: 500 10px/1 "IBM Plex Mono", monospace;
+}
+.backup-actions button:hover {
+  border-color: #64b0e0;
+  color: #fff;
+  background: rgb(100 176 224 / 15%);
+}
+.backup-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.backup-actions input {
+  display: none;
+}
 
 .new-note-button,
 .primary-ink-button {
@@ -454,6 +483,22 @@ kbd {
   align-items: center;
   gap: 17px;
 }
+.theme-toggle {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #cdd7da;
+  border-radius: 50%;
+  color: #52707d;
+  background: #fff;
+  place-items: center;
+}
+.theme-toggle:hover {
+  border-color: #1769aa;
+  color: #1769aa;
+  background: #eef6fb;
+}
 .note-action-button {
   display: inline-flex;
   align-items: center;
@@ -467,6 +512,12 @@ kbd {
 }
 .note-action-button:hover {
   color: var(--blue);
+}
+.note-action-button kbd {
+  border: 1px solid #c6d2d5;
+  color: #77909a;
+  background: #fffdf8;
+  font-size: 9px;
 }
 .body-search-trigger {
   display: inline-flex;
@@ -1084,6 +1135,163 @@ kbd {
 }
 .export-actions .export-html:hover {
   background: #2380c6;
+}
+
+html.dark {
+  --background: #10181e;
+  --foreground: #e5edf0;
+  --ink: #e5edf0;
+  --paper: #172229;
+  --rule: #30404a;
+  --muted: #aab8bd;
+}
+html.dark body,
+html.dark .app-shell,
+html.dark .editor-stage {
+  background: #10181e;
+}
+html.dark .editor-header {
+  border-color: #30404a;
+}
+html.dark .breadcrumb,
+html.dark .breadcrumb i,
+html.dark .save-time,
+html.dark .memo-paper-topline,
+html.dark .memo-footer {
+  color: #9cacb3;
+}
+html.dark .note-action-button,
+html.dark .body-search-trigger {
+  color: #a9c0c9;
+}
+html.dark .body-search-trigger kbd {
+  border-color: #40545f;
+  color: #a8c0ca;
+  background: #1a2830;
+}
+html.dark .note-action-button kbd {
+  border-color: #40545f;
+  color: #a8c0ca;
+  background: #1a2830;
+}
+html.dark .theme-toggle {
+  border-color: #40545f;
+  color: #c4d4da;
+  background: #1a2830;
+}
+html.dark .theme-toggle:hover {
+  border-color: #64b0e0;
+  color: #8dcbef;
+  background: #213742;
+}
+html.dark .memo-paper,
+html.dark .empty-editor,
+html.dark .memo-body,
+html.dark .body-composer {
+  color: #dde8ec;
+  background: #172229;
+}
+html.dark .memo-paper {
+  box-shadow: 0 0 0 1px #30404a;
+}
+html.dark .memo-title {
+  color: #edf5f7;
+}
+html.dark .memo-title::placeholder,
+html.dark .memo-body::placeholder {
+  color: #71858e;
+}
+html.dark .editor-rule,
+html.dark .memo-footer,
+html.dark .body-composer,
+html.dark .line-count {
+  border-color: #30404a;
+}
+html.dark .line-count {
+  color: #7f959d;
+  background: #142027;
+}
+html.dark .in-note-search {
+  border-color: #40545f;
+  background: #1a2a33;
+}
+html.dark .in-note-search-input input {
+  color: #e4eef2;
+}
+html.dark .match-counter,
+html.dark .close-search-button {
+  color: #a8c0ca;
+}
+html.dark .match-move-buttons {
+  border-color: #40545f;
+  background: #172229;
+}
+html.dark .match-move-buttons button + button,
+html.dark .close-search-button {
+  border-color: #40545f;
+}
+html.dark .compare-resize-handle {
+  border-color: #30404a;
+  color: #9cacb3;
+  background: #142027;
+}
+html.dark .compare-stage {
+  border-color: #30404a;
+  background-color: #142027;
+  background-image: linear-gradient(rgb(20 32 39 / 95%), rgb(20 32 39 / 95%));
+}
+html.dark .compare-topline h2,
+html.dark .comparison-placeholder h3 {
+  color: #e5edf0;
+}
+html.dark .panel-overline,
+html.dark .comparison-placeholder p,
+html.dark .compare-footnote {
+  color: #9cacb3;
+}
+html.dark .comparison-placeholder,
+html.dark .diff-empty-grid,
+html.dark .diff-output,
+html.dark .side-diff-cell + .side-diff-cell {
+  border-color: #40505a;
+}
+html.dark .diff-empty-grid,
+html.dark .diff-output {
+  background: #172229;
+}
+html.dark .diff-line.context,
+html.dark .side-diff-row.context {
+  color: #c4d1d6;
+  background: #172229;
+}
+html.dark .diff-line,
+html.dark .side-diff-row {
+  border-color: #30404a;
+}
+html.dark .diff-line-number,
+html.dark .side-diff-cell > span {
+  color: #82959d;
+}
+html.dark .compare-selects select,
+html.dark .view-switcher button,
+html.dark .export-actions button {
+  border-color: #40545f;
+  color: #d6e2e7;
+  background: #1a2830;
+}
+html.dark .view-switcher button.is-selected,
+html.dark .export-actions .export-html {
+  border-color: #2380c6;
+  color: #fff;
+  background: #1769aa;
+}
+html.dark .deletion-dialog {
+  border-color: #40505a;
+  color: #e5edf0;
+  background: #172229;
+}
+html.dark .deletion-dialog [data-slot="alert-dialog-description"] {
+  color: #aebdc3;
 }
 
 @media (max-width: 1100px) {
