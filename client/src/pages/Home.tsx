@@ -24,6 +24,7 @@ import {
   Upload,
   GitCompareArrows,
   GripVertical,
+  Keyboard,
   PanelRightOpen,
   PencilLine,
   Moon,
@@ -109,6 +110,7 @@ export default function Home() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [isBodySearchOpen, setIsBodySearchOpen] = useState(false);
+  const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
   const [bodySearch, setBodySearch] = useState("");
   const [activeMatch, setActiveMatch] = useState(0);
   const [deletionTarget, setDeletionTarget] = useState<"active" | "all" | null>(
@@ -182,6 +184,9 @@ export default function Home() {
       }
       if (event.key === "Escape" && isBodySearchOpen) {
         closeBodySearch();
+      }
+      if (event.key === "Escape" && isShortcutHelpOpen) {
+        setIsShortcutHelpOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -571,6 +576,16 @@ export default function Home() {
           </div>
           <div className="editor-actions">
             <button
+              className="shortcut-help-trigger"
+              type="button"
+              onClick={() => setIsShortcutHelpOpen(current => !current)}
+              aria-expanded={isShortcutHelpOpen}
+              aria-controls="shortcut-help"
+            >
+              <Keyboard size={16} aria-hidden="true" />
+              <span>ショートカット</span>
+            </button>
+            <button
               className="theme-toggle"
               type="button"
               onClick={toggleTheme}
@@ -632,6 +647,23 @@ export default function Home() {
                 {savedAt ? formatDateTime(savedAt) : ""}
               </span>
             </div>
+            {isShortcutHelpOpen && (
+              <section
+                className="shortcut-help"
+                id="shortcut-help"
+                role="dialog"
+                aria-label="ショートカット一覧"
+              >
+                <h2>ショートカット</h2>
+                <dl>
+                  <div><dt><kbd>{/mac/i.test(navigator.platform) ? "⌥ N" : "Alt N"}</kbd></dt><dd>新しいメモ</dd></div>
+                  <div><dt><kbd>⌘ / Ctrl F</kbd></dt><dd>本文内を検索</dd></div>
+                  <div><dt><kbd>⌘ / Ctrl S</kbd></dt><dd>現在の内容を保存</dd></div>
+                  <div><dt><kbd>⌘ / Ctrl ⇧ S</kbd></dt><dd>スナップショットを保存</dd></div>
+                  <div><dt><kbd>Esc</kbd></dt><dd>検索・一覧を閉じる</dd></div>
+                </dl>
+              </section>
+            )}
           </div>
         </header>
 
