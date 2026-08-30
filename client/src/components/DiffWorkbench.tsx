@@ -145,6 +145,12 @@ export default function DiffWorkbench({
 
   const sideBySideRows = useMemo(() => createSideBySideRows(diff), [diff]);
 
+  const swapComparison = () => {
+    if (!from || !to) return;
+    setFromId(to.id);
+    setToId(from.id);
+  };
+
   const renderSideBySide = () =>
     sideBySideRows.map((row, index) => {
       const left = row.left && { number: row.left.fromLine, text: row.left.text };
@@ -247,9 +253,16 @@ export default function DiffWorkbench({
             ))}
           </select>
         </label>
-        <div className="swap-sign" aria-hidden="true">
+        <button
+          className="swap-sign"
+          type="button"
+          onClick={swapComparison}
+          title="比較元と比較先を入れ替える"
+          aria-label="比較元と比較先を入れ替える"
+          disabled={from.id === to.id}
+        >
           <GitCompareArrows size={16} />
-        </div>
+        </button>
         <label>
           <span>AFTER</span>
           <select value={to.id} onChange={event => setToId(event.target.value)}>

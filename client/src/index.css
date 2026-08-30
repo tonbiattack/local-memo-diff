@@ -1001,8 +1001,20 @@ kbd {
 .swap-sign {
   display: grid;
   height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
   place-items: center;
   color: #1769aa;
+  background: transparent;
+}
+.swap-sign:hover:not(:disabled) {
+  border-color: #9fc4d9;
+  background: #eef6fb;
+}
+.swap-sign:disabled {
+  color: #aab5b8;
+  cursor: not-allowed;
+}
 }
 .diff-summary {
   display: flex;
@@ -1350,6 +1362,10 @@ html.dark .export-actions button {
   border-color: #40545f;
   color: #d6e2e7;
   background: #1a2830;
+}
+html.dark .swap-sign:hover:not(:disabled) {
+  border-color: #405f70;
+  background: #1d3440;
 }
 html.dark .view-switcher button.is-selected,
 html.dark .export-actions .export-html {
