@@ -3,7 +3,14 @@
  * 紙面の余白と製図ネイビーのレールで、書く作業に焦点を戻す。
  */
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type SetStateAction,
+} from "react";
 import {
   Check,
   ChevronDown,
@@ -42,11 +49,15 @@ import {
   getNoteLabel,
   formatDateTime,
   createMemoBackup,
+  DEFAULT_WORKSPACE_SETTINGS,
   makeNote,
   makeSnapshot,
   MemoNote,
+  normalizeWorkspaceSettings,
   parseMemoBackup,
   STORAGE_KEY,
+  WORKSPACE_SETTINGS_KEY,
+  WorkspaceSettings,
 } from "@/lib/memo";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -82,8 +93,18 @@ function loadNotes(): MemoNote[] {
   }
 }
 
+function loadWorkspaceSettings(): WorkspaceSettings {
+  try {
+    return normalizeWorkspaceSettings(
+      JSON.parse(window.localStorage.getItem(WORKSPACE_SETTINGS_KEY) ?? "null")
+    );
+  } catch {
+    return DEFAULT_WORKSPACE_SETTINGS;
+  }
+}
+
 export default function Home() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, setTheme } = useTheme();
   const [notes, setNotes] = useState<MemoNote[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -95,7 +116,8 @@ export default function Home() {
   );
   const [isHydrated, setIsHydrated] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [compareWidth, setCompareWidth] = useState(352);
+  const [workspaceSettings, setWorkspaceSettings] =
+    useState<WorkspaceSettings>(DEFAULT_WORKSPACE_SETTINGS);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const bodySearchRef = useRef<HTMLInputElement>(null);
@@ -109,6 +131,7 @@ export default function Home() {
       setNotes(saved);
       setActiveId(saved[0].id);
     }
+    setWorkspaceSettings(loadWorkspaceSettings());
     setIsHydrated(true);
   }, []);
 
@@ -121,6 +144,14 @@ export default function Home() {
     }
     setSavedAt(new Date().toISOString());
   }, [notes, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    window.localStorage.setItem(
+      WORKSPACE_SETTINGS_KEY,
+      JSON.stringify(workspaceSettings)
+    );
+  }, [workspaceSettings, isHydrated]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -158,6 +189,15 @@ export default function Home() {
   });
 
   const activeNote = notes.find(note => note.id === activeId) ?? null;
+  const compareWidth = workspaceSettings.compareWidth;
+  const setCompareWidth = (value: SetStateAction<number>) => {
+    setWorkspaceSettings(current => ({
+      ...current,
+      compareWidth: clampCompareWidth(
+        typeof value === "function" ? value(current.compareWidth) : value
+      ),
+    }));
+  };
   const activeBodyTitle = activeNote ? getBodyTitle(activeNote.body) : "";
   const isUsingBodyTitle = Boolean(
     activeNote && !activeNote.title.trim() && activeBodyTitle
@@ -235,7 +275,10 @@ export default function Home() {
   };
 
   const exportNotes = () => {
-    const blob = new Blob([JSON.stringify(createMemoBackup(notes), null, 2)], {
+    const blob = new Blob([JSON.stringify(createMemoBackup(notes, {
+      ...workspaceSettings,
+      theme,
+    }), null, 2)], {
       type: "application/json;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
@@ -253,7 +296,8 @@ export default function Home() {
     if (!file) return;
 
     try {
-      const imported = parseMemoBackup(JSON.parse(await file.text()));
+      const backup = parseMemoBackup(JSON.parse(await file.text()));
+      const imported = backup.notes;
       let firstImportedId: string | null = null;
       setNotes(current => {
         const knownIds = new Set(current.map(note => note.id));
@@ -268,6 +312,10 @@ export default function Home() {
         );
       });
       if (firstImportedId) setActiveId(firstImportedId);
+      if (backup.settings) {
+        setWorkspaceSettings(normalizeWorkspaceSettings(backup.settings));
+        setTheme?.(backup.settings.theme);
+      }
       toast.success(`${imported.length} 件のメモを追加しました`);
     } catch {
       toast.error("バックアップを読み込めませんでした。JSONファイルを確認してください。");
@@ -767,7 +815,14 @@ export default function Home() {
           </div>
           <GitCompareArrows size={22} aria-hidden="true" />
         </div>
-        <DiffWorkbench notes={notes} activeId={activeId} />
+        <DiffWorkbench
+          notes={notes}
+          activeId={activeId}
+          viewMode={workspaceSettings.diffViewMode}
+          onViewModeChange={diffViewMode =>
+            setWorkspaceSettings(current => ({ ...current, diffViewMode }))
+          }
+        />
         <div className="compare-footnote">
           <GripVertical size={16} />
           <span>変更の全文を含む差分をエクスポートできます</span>

@@ -18,13 +18,30 @@ export type MemoNote = {
   snapshots?: MemoSnapshot[];
 };
 
+export type DiffViewMode = "unified" | "side";
+
+export type WorkspaceSettings = {
+  compareWidth: number;
+  diffViewMode: DiffViewMode;
+};
+
+export type BackupSettings = WorkspaceSettings & {
+  theme: "light" | "dark";
+};
+
 export type MemoBackup = {
-  version: 1;
+  version: 2;
   exportedAt: string;
   notes: MemoNote[];
+  settings: BackupSettings;
 };
 
 export const STORAGE_KEY = "local-memo-diff:notes:v1";
+export const WORKSPACE_SETTINGS_KEY = "local-memo-diff:workspace:v1";
+export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
+  compareWidth: 352,
+  diffViewMode: "unified",
+};
 
 export const formatDateTime = (value: string) =>
   new Intl.DateTimeFormat("ja-JP", {
@@ -93,23 +110,60 @@ const isMemoNote = (value: unknown): value is MemoNote => {
   );
 };
 
-export const createMemoBackup = (notes: MemoNote[]): MemoBackup => ({
-  version: 1,
+const normalizeNotes = (notes: MemoNote[]) =>
+  notes.map(note => ({
+    ...note,
+    snapshots: [...(note.snapshots ?? [])].slice(0, 20),
+  }));
+
+export const normalizeWorkspaceSettings = (value: unknown): WorkspaceSettings => {
+  if (!value || typeof value !== "object") return DEFAULT_WORKSPACE_SETTINGS;
+  const settings = value as Record<string, unknown>;
+  const compareWidth = settings.compareWidth;
+  return {
+    compareWidth:
+      typeof compareWidth === "number" && Number.isFinite(compareWidth)
+        ? Math.min(640, Math.max(280, compareWidth))
+        : DEFAULT_WORKSPACE_SETTINGS.compareWidth,
+    diffViewMode:
+      settings.diffViewMode === "side" ? "side" : DEFAULT_WORKSPACE_SETTINGS.diffViewMode,
+  };
+};
+
+const isBackupSettings = (value: unknown): value is BackupSettings => {
+  if (!value || typeof value !== "object") return false;
+  const settings = value as Record<string, unknown>;
+  return (
+    typeof settings.compareWidth === "number" &&
+    (settings.diffViewMode === "unified" || settings.diffViewMode === "side") &&
+    (settings.theme === "light" || settings.theme === "dark")
+  );
+};
+
+export const createMemoBackup = (
+  notes: MemoNote[],
+  settings: BackupSettings
+): MemoBackup => ({
+  version: 2,
   exportedAt: new Date().toISOString(),
   notes,
+  settings,
 });
 
-export function parseMemoBackup(value: unknown): MemoNote[] {
+export function parseMemoBackup(value: unknown): {
+  notes: MemoNote[];
+  settings?: BackupSettings;
+} {
   if (!value || typeof value !== "object") {
     throw new Error("バックアップファイルの形式が正しくありません。");
   }
   const backup = value as Record<string, unknown>;
-  if (backup.version !== 1 || !Array.isArray(backup.notes) || !backup.notes.every(isMemoNote)) {
+  if (!Array.isArray(backup.notes) || !backup.notes.every(isMemoNote)) {
     throw new Error("対応していないバックアップファイルです。");
   }
-
-  return backup.notes.map(note => ({
-    ...note,
-    snapshots: [...(note.snapshots ?? [])].slice(0, 20),
-  }));
+  if (backup.version === 1) return { notes: normalizeNotes(backup.notes) };
+  if (backup.version === 2 && isBackupSettings(backup.settings)) {
+    return { notes: normalizeNotes(backup.notes), settings: backup.settings };
+  }
+  throw new Error("対応していないバックアップファイルです。");
 }
