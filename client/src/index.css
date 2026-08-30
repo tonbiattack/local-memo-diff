@@ -1019,6 +1019,14 @@ kbd {
   color: #93413d;
   background: #fae4e2;
 }
+.side-diff-row.changed .side-diff-cell:first-child {
+  color: #93413d;
+  background: #fae4e2;
+}
+.side-diff-row.changed .side-diff-cell:last-child {
+  color: #155d35;
+  background: #e4f2e6;
+}
 .export-actions {
   display: grid;
   grid-template-columns: 1fr 1fr 1.55fr;

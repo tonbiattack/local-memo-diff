@@ -12,6 +12,12 @@ export type DiffLine = {
   toLine?: number;
 };
 
+export type SideBySideDiffRow = {
+  left?: Pick<DiffLine, "text" | "fromLine">;
+  right?: Pick<DiffLine, "text" | "toLine">;
+  kind: "context" | "changed" | "removed" | "added";
+};
+
 export const splitLines = (value: string) => value.replace(/\r\n/g, "\n").split("\n");
 
 export function createLineDiff(before: string, after: string): DiffLine[] {
@@ -44,6 +50,49 @@ export function createLineDiff(before: string, after: string): DiffLine[] {
     }
   }
   return output;
+}
+
+/**
+ * Keep consecutive deletions and additions in the same visual row.
+ * A unified diff emits those as separate records, which otherwise makes the
+ * right-hand side drift downward whenever a line is replaced.
+ */
+export function createSideBySideRows(diff: DiffLine[]): SideBySideDiffRow[] {
+  const rows: SideBySideDiffRow[] = [];
+
+  for (let index = 0; index < diff.length;) {
+    const line = diff[index];
+    if (line.kind === "context") {
+      rows.push({
+        kind: "context",
+        left: { text: line.text, fromLine: line.fromLine },
+        right: { text: line.text, toLine: line.toLine },
+      });
+      index += 1;
+      continue;
+    }
+
+    const removed: DiffLine[] = [];
+    const added: DiffLine[] = [];
+    while (index < diff.length && diff[index].kind !== "context") {
+      const changedLine = diff[index];
+      (changedLine.kind === "removed" ? removed : added).push(changedLine);
+      index += 1;
+    }
+
+    const rowCount = Math.max(removed.length, added.length);
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+      const left = removed[rowIndex];
+      const right = added[rowIndex];
+      rows.push({
+        kind: left && right ? "changed" : left ? "removed" : "added",
+        left: left && { text: left.text, fromLine: left.fromLine },
+        right: right && { text: right.text, toLine: right.toLine },
+      });
+    }
+  }
+
+  return rows;
 }
 
 export const prefixFor = (kind: DiffKind) => kind === "added" ? "+" : kind === "removed" ? "-" : " ";

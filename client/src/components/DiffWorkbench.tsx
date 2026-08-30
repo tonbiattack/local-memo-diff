@@ -14,7 +14,13 @@ import {
   Equal,
 } from "lucide-react";
 import { toast } from "sonner";
-import { createLineDiff, escapeHtml, prefixFor, splitLines } from "@/lib/diff";
+import {
+  createLineDiff,
+  createSideBySideRows,
+  escapeHtml,
+  prefixFor,
+  splitLines,
+} from "@/lib/diff";
 import { formatDateTime, getNoteLabel, MemoNote } from "@/lib/memo";
 
 type DiffWorkbenchProps = { notes: MemoNote[]; activeId: string | null };
@@ -128,28 +134,24 @@ export default function DiffWorkbench({ notes, activeId }: DiffWorkbenchProps) {
   const removed = diff.filter(line => line.kind === "removed").length;
   const changed = added + removed;
 
+  const sideBySideRows = useMemo(() => createSideBySideRows(diff), [diff]);
+
   const renderSideBySide = () =>
-    diff.map((line, index) => {
-      const left =
-        line.kind === "added"
-          ? null
-          : { number: line.fromLine, text: line.text };
-      const right =
-        line.kind === "removed"
-          ? null
-          : { number: line.toLine, text: line.text };
+    sideBySideRows.map((row, index) => {
+      const left = row.left && { number: row.left.fromLine, text: row.left.text };
+      const right = row.right && { number: row.right.toLine, text: row.right.text };
       return (
         <div
-          className={`side-diff-row ${line.kind}`}
-          key={`${line.kind}-${index}`}
+          className={`side-diff-row ${row.kind}`}
+          key={`${row.kind}-${index}`}
         >
           <div className="side-diff-cell">
             <span>{left?.number ?? ""}</span>
-            <code>{left?.text || " "}</code>
+            <code>{left?.text ?? " "}</code>
           </div>
           <div className="side-diff-cell">
             <span>{right?.number ?? ""}</span>
-            <code>{right?.text || " "}</code>
+            <code>{right?.text ?? " "}</code>
           </div>
         </div>
       );
