@@ -7,6 +7,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ChevronDown,
+  BookmarkPlus,
+  Copy,
   ChevronUp,
   Clock3,
   FilePlus2,
@@ -31,7 +33,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getBodyTitle, getNoteLabel, formatDateTime, makeNote, MemoNote, STORAGE_KEY } from "@/lib/memo";
+import {
+  getBodyTitle,
+  getNoteLabel,
+  formatDateTime,
+  makeNote,
+  makeSnapshot,
+  MemoNote,
+  STORAGE_KEY,
+} from "@/lib/memo";
 
 function loadNotes(): MemoNote[] {
   try {
@@ -47,12 +57,12 @@ function loadNotes(): MemoNote[] {
           typeof item.title === "string" &&
           typeof item.body === "string" &&
           typeof item.createdAt === "string" &&
-          typeof item.updatedAt === "string",
+          typeof item.updatedAt === "string"
       )
-      .map((note) =>
+      .map(note =>
         note.title === "無題のメモ" && note.body.trim()
-          ? { ...note, title: "" }
-          : note,
+          ? { ...note, title: "", snapshots: note.snapshots ?? [] }
+          : { ...note, snapshots: note.snapshots ?? [] }
       );
   } catch {
     return [];
@@ -66,7 +76,9 @@ export default function Home() {
   const [isBodySearchOpen, setIsBodySearchOpen] = useState(false);
   const [bodySearch, setBodySearch] = useState("");
   const [activeMatch, setActiveMatch] = useState(0);
-  const [deletionTarget, setDeletionTarget] = useState<"active" | "all" | null>(null);
+  const [deletionTarget, setDeletionTarget] = useState<"active" | "all" | null>(
+    null
+  );
   const [isHydrated, setIsHydrated] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -74,7 +86,9 @@ export default function Home() {
   const bodySearchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const saved = loadNotes().sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
+    const saved = loadNotes().sort(
+      (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)
+    );
     if (saved.length) {
       setNotes(saved);
       setActiveId(saved[0].id);
@@ -104,7 +118,9 @@ export default function Home() {
       }
       // Ctrl+N/⌘N are reserved by browsers for opening a new window.
       // Use Alt+N on Windows/Linux so the browser cannot consume the shortcut.
-      const isNewNoteShortcut = isMac ? event.altKey && !event.metaKey : event.altKey && !event.ctrlKey;
+      const isNewNoteShortcut = isMac
+        ? event.altKey && !event.metaKey
+        : event.altKey && !event.ctrlKey;
       if (isNewNoteShortcut && key === "n") {
         event.preventDefault();
         event.stopPropagation();
@@ -122,13 +138,17 @@ export default function Home() {
     return () => window.removeEventListener("keydown", onKeyDown);
   });
 
-  const activeNote = notes.find((note) => note.id === activeId) ?? null;
+  const activeNote = notes.find(note => note.id === activeId) ?? null;
   const activeBodyTitle = activeNote ? getBodyTitle(activeNote.body) : "";
-  const isUsingBodyTitle = Boolean(activeNote && !activeNote.title.trim() && activeBodyTitle);
+  const isUsingBodyTitle = Boolean(
+    activeNote && !activeNote.title.trim() && activeBodyTitle
+  );
   const filteredNotes = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return notes;
-    return notes.filter((note) => `${note.title}\n${note.body}`.toLowerCase().includes(keyword));
+    return notes.filter(note =>
+      `${note.title}\n${note.body}`.toLowerCase().includes(keyword)
+    );
   }, [notes, query]);
 
   const bodyMatches = useMemo(() => {
@@ -149,15 +169,50 @@ export default function Home() {
   }, [activeNote?.id, bodySearch]);
 
   useEffect(() => {
-    if (activeMatch >= bodyMatches.length && bodyMatches.length) setActiveMatch(0);
+    if (activeMatch >= bodyMatches.length && bodyMatches.length)
+      setActiveMatch(0);
   }, [activeMatch, bodyMatches.length]);
 
   const createNote = () => {
     const note = makeNote();
-    setNotes((current) => [note, ...current]);
+    setNotes(current => [note, ...current]);
     setActiveId(note.id);
     setQuery("");
     window.setTimeout(() => titleRef.current?.select(), 0);
+  };
+
+  const duplicateNote = () => {
+    if (!activeNote) return;
+    const now = new Date().toISOString();
+    const copy: MemoNote = {
+      ...activeNote,
+      id: crypto.randomUUID(),
+      title: activeNote.title.trim() ? `${activeNote.title} のコピー` : "",
+      createdAt: now,
+      updatedAt: now,
+      snapshots: [],
+    };
+    setNotes(current => [copy, ...current]);
+    setActiveId(copy.id);
+    setQuery("");
+    toast.success("メモを複製しました");
+    window.setTimeout(() => titleRef.current?.select(), 0);
+  };
+
+  const saveSnapshot = () => {
+    if (!activeNote) return;
+    const snapshot = makeSnapshot(activeNote);
+    setNotes(current =>
+      current.map(note =>
+        note.id === activeNote.id
+          ? {
+              ...note,
+              snapshots: [snapshot, ...(note.snapshots ?? [])].slice(0, 20),
+            }
+          : note
+      )
+    );
+    toast.success("スナップショットを保存しました");
   };
 
   const openBodySearch = () => {
@@ -177,7 +232,8 @@ export default function Home() {
       toast.message("本文に一致する文字列はありません");
       return;
     }
-    const next = (activeMatch + offset + bodyMatches.length) % bodyMatches.length;
+    const next =
+      (activeMatch + offset + bodyMatches.length) % bodyMatches.length;
     setActiveMatch(next);
     window.requestAnimationFrame(() => {
       const textarea = bodyRef.current;
@@ -190,18 +246,20 @@ export default function Home() {
 
   const updateNote = (patch: Partial<Pick<MemoNote, "title" | "body">>) => {
     if (!activeId) return;
-    setNotes((current) =>
+    setNotes(current =>
       current
-        .map((note) =>
-          note.id === activeId ? { ...note, ...patch, updatedAt: new Date().toISOString() } : note,
+        .map(note =>
+          note.id === activeId
+            ? { ...note, ...patch, updatedAt: new Date().toISOString() }
+            : note
         )
-        .sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt)),
+        .sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt))
     );
   };
 
   const completeDeletion = () => {
     if (deletionTarget === "active" && activeNote) {
-      const remainingNotes = notes.filter((note) => note.id !== activeNote.id);
+      const remainingNotes = notes.filter(note => note.id !== activeNote.id);
       setNotes(remainingNotes);
       setActiveId(remainingNotes[0]?.id ?? null);
       closeBodySearch();
@@ -218,25 +276,51 @@ export default function Home() {
     setDeletionTarget(null);
   };
 
-  const deletionDialogTitle = deletionTarget === "all" ? "すべてのメモを削除しますか？" : "このメモを削除しますか？";
-  const deletionDialogDescription = deletionTarget === "all"
-    ? `この端末に保存されている ${notes.length} 件のメモをすべて削除します。この操作は取り消せません。`
-    : `「${activeNote ? getNoteLabel(activeNote) : "このメモ"}」をこの端末から削除します。この操作は取り消せません。`;
+  const deletionDialogTitle =
+    deletionTarget === "all"
+      ? "すべてのメモを削除しますか？"
+      : "このメモを削除しますか？";
+  const deletionDialogDescription =
+    deletionTarget === "all"
+      ? `この端末に保存されている ${notes.length} 件のメモをすべて削除します。この操作は取り消せません。`
+      : `「${activeNote ? getNoteLabel(activeNote) : "このメモ"}」をこの端末から削除します。この操作は取り消せません。`;
 
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="メモ一覧">
         <div className="brand-lockup">
           <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 6.5H28L36 14.5V39.5H12V6.5Z" fill="#EAF5FA" stroke="#64B0E0" strokeWidth="2" />
+            <svg
+              viewBox="0 0 48 48"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 6.5H28L36 14.5V39.5H12V6.5Z"
+                fill="#EAF5FA"
+                stroke="#64B0E0"
+                strokeWidth="2"
+              />
               <path d="M28 6.5V14.5H36" stroke="#64B0E0" strokeWidth="2" />
-              <path d="M18 22H30M18 28H30" stroke="#1769AA" strokeWidth="2" strokeLinecap="round" />
-              <path d="M16.5 35.5L21 31L24 34L31.5 26.5" stroke="#78C39B" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M18 22H30M18 28H30"
+                stroke="#1769AA"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M16.5 35.5L21 31L24 34L31.5 26.5"
+                stroke="#78C39B"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </span>
           <div>
-            <p className="brand-name">memo <span>/</span> diff</p>
+            <p className="brand-name">
+              memo <span>/</span> diff
+            </p>
             <p className="brand-caption">LOCAL WORKSPACE</p>
           </div>
         </div>
@@ -251,7 +335,7 @@ export default function Home() {
           <Search aria-hidden="true" size={16} />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={event => setQuery(event.target.value)}
             placeholder="メモを検索"
             aria-label="メモを検索"
           />
@@ -262,7 +346,7 @@ export default function Home() {
           <span>{notes.length.toString().padStart(2, "0")}</span>
         </div>
         <nav className="note-list" aria-label="保存されたメモ">
-          {filteredNotes.map((note) => (
+          {filteredNotes.map(note => (
             <button
               className={`note-row ${note.id === activeId ? "is-active" : ""}`}
               type="button"
@@ -270,19 +354,29 @@ export default function Home() {
               key={note.id}
             >
               <span className="note-row-title">{getNoteLabel(note)}</span>
-              <span className="note-row-meta">{formatDateTime(note.updatedAt)}</span>
+              <span className="note-row-meta">
+                {formatDateTime(note.updatedAt)}
+              </span>
             </button>
           ))}
           {!filteredNotes.length && (
             <div className="sidebar-empty">
               <PencilLine aria-hidden="true" size={18} />
-              <p>{query ? "該当するメモはありません" : "最初のメモを書き始めましょう"}</p>
+              <p>
+                {query
+                  ? "該当するメモはありません"
+                  : "最初のメモを書き始めましょう"}
+              </p>
             </div>
           )}
         </nav>
 
         {notes.length > 0 && (
-          <button className="delete-all-button" type="button" onClick={() => setDeletionTarget("all")}>
+          <button
+            className="delete-all-button"
+            type="button"
+            onClick={() => setDeletionTarget("all")}
+          >
             <Trash2 size={15} aria-hidden="true" />
             <span>全メモを削除</span>
           </button>
@@ -290,20 +384,72 @@ export default function Home() {
 
         <div className="local-only-note">
           <span className="local-pulse" aria-hidden="true" />
-          <p><b>この端末だけに保存中</b><br />サーバーやDBへ送信しません</p>
+          <p>
+            <b>この端末だけに保存中</b>
+            <br />
+            サーバーやDBへ送信しません
+          </p>
         </div>
       </aside>
 
       <main className="editor-stage">
         <header className="editor-header">
-          <div className="breadcrumb"><Files size={15} aria-hidden="true" /> <span>MY NOTES</span> <i>/</i> <b>{activeNote ? getNoteLabel(activeNote) : "新規文書"}</b></div>
+          <div className="breadcrumb">
+            <Files size={15} aria-hidden="true" /> <span>MY NOTES</span>{" "}
+            <i>/</i> <b>{activeNote ? getNoteLabel(activeNote) : "新規文書"}</b>
+          </div>
           <div className="editor-actions">
-            {activeNote && <button className="body-search-trigger" type="button" onClick={openBodySearch} title="本文内を検索（Ctrl または Cmd + F）"><Search size={15} aria-hidden="true" /><span>本文内を検索</span><kbd>⌘ F</kbd></button>}
-            {activeNote && <button className="delete-note-button" type="button" onClick={() => setDeletionTarget("active")} title="現在のメモを削除"><Trash2 size={15} aria-hidden="true" /><span>現在のメモを削除</span></button>}
+            {activeNote && (
+              <button
+                className="body-search-trigger"
+                type="button"
+                onClick={openBodySearch}
+                title="本文内を検索（Ctrl または Cmd + F）"
+              >
+                <Search size={15} aria-hidden="true" />
+                <span>本文内を検索</span>
+                <kbd>⌘ F</kbd>
+              </button>
+            )}
+            {activeNote && (
+              <button
+                className="note-action-button"
+                type="button"
+                onClick={duplicateNote}
+                title="現在のメモを複製"
+              >
+                <Copy size={15} aria-hidden="true" />
+                <span>複製</span>
+              </button>
+            )}
+            {activeNote && (
+              <button
+                className="note-action-button"
+                type="button"
+                onClick={saveSnapshot}
+                title="現在の内容をスナップショットとして保存"
+              >
+                <BookmarkPlus size={15} aria-hidden="true" />
+                <span>保存</span>
+              </button>
+            )}
+            {activeNote && (
+              <button
+                className="delete-note-button"
+                type="button"
+                onClick={() => setDeletionTarget("active")}
+                title="現在のメモを削除"
+              >
+                <Trash2 size={15} aria-hidden="true" />
+                <span>現在のメモを削除</span>
+              </button>
+            )}
             <div className="save-indicator" aria-live="polite">
               <Check size={15} aria-hidden="true" />
               <span>{savedAt ? "ローカルに保存済み" : "準備中"}</span>
-              <span className="save-time">{savedAt ? formatDateTime(savedAt) : ""}</span>
+              <span className="save-time">
+                {savedAt ? formatDateTime(savedAt) : ""}
+              </span>
             </div>
           </div>
         </header>
@@ -312,33 +458,102 @@ export default function Home() {
           <section className="memo-paper" aria-label="メモエディタ">
             <div className="memo-paper-topline">
               <span>NOTE / {activeNote.id.slice(0, 8).toUpperCase()}</span>
-              <span><Clock3 size={14} aria-hidden="true" /> 更新 {formatDateTime(activeNote.updatedAt)}</span>
+              <span>
+                <Clock3 size={14} aria-hidden="true" /> 更新{" "}
+                {formatDateTime(activeNote.updatedAt)}
+              </span>
             </div>
-            {isBodySearchOpen && <div className="in-note-search" role="search" aria-label="本文内を検索">
-              <label className="in-note-search-input"><Search size={15} aria-hidden="true" /><input ref={bodySearchRef} value={bodySearch} onChange={(event) => setBodySearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); moveBodyMatch(event.shiftKey ? -1 : 1); } }} placeholder="本文内を検索" aria-label="検索する文字列" /></label>
-              <span className={`match-counter ${bodySearch && !bodyMatches.length ? "is-empty" : ""}`} aria-live="polite">{bodySearch ? `${bodyMatches.length ? activeMatch + 1 : 0} / ${bodyMatches.length}` : "検索語を入力"}</span>
-              <div className="match-move-buttons"><button type="button" disabled={!bodyMatches.length} onClick={() => moveBodyMatch(-1)} aria-label="前の一致箇所へ"><ChevronUp size={15} /></button><button type="button" disabled={!bodyMatches.length} onClick={() => moveBodyMatch(1)} aria-label="次の一致箇所へ"><ChevronDown size={15} /></button></div>
-              <button className="close-search-button" type="button" onClick={closeBodySearch} aria-label="本文内検索を閉じる"><X size={16} /></button>
-            </div>}
+            {isBodySearchOpen && (
+              <div
+                className="in-note-search"
+                role="search"
+                aria-label="本文内を検索"
+              >
+                <label className="in-note-search-input">
+                  <Search size={15} aria-hidden="true" />
+                  <input
+                    ref={bodySearchRef}
+                    value={bodySearch}
+                    onChange={event => setBodySearch(event.target.value)}
+                    onKeyDown={event => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        moveBodyMatch(event.shiftKey ? -1 : 1);
+                      }
+                    }}
+                    placeholder="本文内を検索"
+                    aria-label="検索する文字列"
+                  />
+                </label>
+                <span
+                  className={`match-counter ${bodySearch && !bodyMatches.length ? "is-empty" : ""}`}
+                  aria-live="polite"
+                >
+                  {bodySearch
+                    ? `${bodyMatches.length ? activeMatch + 1 : 0} / ${bodyMatches.length}`
+                    : "検索語を入力"}
+                </span>
+                <div className="match-move-buttons">
+                  <button
+                    type="button"
+                    disabled={!bodyMatches.length}
+                    onClick={() => moveBodyMatch(-1)}
+                    aria-label="前の一致箇所へ"
+                  >
+                    <ChevronUp size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!bodyMatches.length}
+                    onClick={() => moveBodyMatch(1)}
+                    aria-label="次の一致箇所へ"
+                  >
+                    <ChevronDown size={15} />
+                  </button>
+                </div>
+                <button
+                  className="close-search-button"
+                  type="button"
+                  onClick={closeBodySearch}
+                  aria-label="本文内検索を閉じる"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
             <input
               ref={titleRef}
               className="memo-title"
               value={activeNote.title}
-              onChange={(event) => updateNote({ title: event.target.value })}
+              onChange={event => updateNote({ title: event.target.value })}
               aria-label="メモのタイトル"
               placeholder={activeBodyTitle || "タイトルなし"}
             />
-            {isUsingBodyTitle && <p className="auto-title-notice">本文の1行目をタイトルとして表示中</p>}
+            {isUsingBodyTitle && (
+              <p className="auto-title-notice">
+                本文の1行目をタイトルとして表示中
+              </p>
+            )}
             <div className="editor-rule" />
             <div className="body-composer">
               <div className="line-count" aria-hidden="true">
-                {Array.from({ length: Math.max(10, activeNote.body.split("\n").length + 4) }, (_, index) => <span key={index}>{index + 1}</span>)}
+                {Array.from(
+                  {
+                    length: Math.max(
+                      10,
+                      activeNote.body.split("\n").length + 4
+                    ),
+                  },
+                  (_, index) => (
+                    <span key={index}>{index + 1}</span>
+                  )
+                )}
               </div>
               <textarea
                 ref={bodyRef}
                 className="memo-body"
                 value={activeNote.body}
-                onChange={(event) => updateNote({ body: event.target.value })}
+                onChange={event => updateNote({ body: event.target.value })}
                 aria-label="メモ本文"
                 placeholder="ここにメモを書きます。&#10;&#10;変更した文章は、別のメモと行単位で比較できます。"
                 spellCheck="false"
@@ -346,43 +561,92 @@ export default function Home() {
             </div>
             <footer className="memo-footer">
               <span>{activeNote.body.length.toLocaleString()} 文字</span>
-              <span>{activeNote.body ? activeNote.body.split(/\s+/).filter(Boolean).length.toLocaleString() : 0} 語</span>
+              <span>
+                {activeNote.body
+                  ? activeNote.body
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .length.toLocaleString()
+                  : 0}{" "}
+                語
+              </span>
               <span>作成 {formatDateTime(activeNote.createdAt)}</span>
             </footer>
           </section>
         ) : (
           <section className="empty-editor">
             <div className="empty-paper-anatomy" aria-hidden="true">
-              <span>01</span><i /><span>02</span><i /><span>03</span><i /><span>04</span><i /><span>05</span><i /><span>06</span><i />
+              <span>01</span>
+              <i />
+              <span>02</span>
+              <i />
+              <span>03</span>
+              <i />
+              <span>04</span>
+              <i />
+              <span>05</span>
+              <i />
+              <span>06</span>
+              <i />
             </div>
-            <div className="empty-icon"><PencilLine size={24} /></div>
+            <div className="empty-icon">
+              <PencilLine size={24} />
+            </div>
             <p className="eyebrow">BLANK PAGE</p>
             <h1>余白から、はじめる。</h1>
-            <p>メモはこのブラウザの localStorage に保存されます。<br />アカウントもデータベースも必要ありません。</p>
-            <button className="primary-ink-button" type="button" onClick={createNote}><FilePlus2 size={17} /> 最初のメモを作る</button>
+            <p>
+              メモはこのブラウザの localStorage に保存されます。
+              <br />
+              アカウントもデータベースも必要ありません。
+            </p>
+            <button
+              className="primary-ink-button"
+              type="button"
+              onClick={createNote}
+            >
+              <FilePlus2 size={17} /> 最初のメモを作る
+            </button>
           </section>
         )}
       </main>
 
       <aside className="compare-stage" aria-label="差分比較">
         <div className="compare-topline">
-          <div><span className="panel-overline">COMPARE</span><h2>差分を比較</h2></div>
+          <div>
+            <span className="panel-overline">COMPARE</span>
+            <h2>差分を比較</h2>
+          </div>
           <GitCompareArrows size={22} aria-hidden="true" />
         </div>
         <DiffWorkbench notes={notes} activeId={activeId} />
-        <div className="compare-footnote"><GripVertical size={16} /><span>変更の全文を含む差分をエクスポートできます</span></div>
+        <div className="compare-footnote">
+          <GripVertical size={16} />
+          <span>変更の全文を含む差分をエクスポートできます</span>
+        </div>
       </aside>
 
-      <AlertDialog open={deletionTarget !== null} onOpenChange={(open) => !open && setDeletionTarget(null)}>
+      <AlertDialog
+        open={deletionTarget !== null}
+        onOpenChange={open => !open && setDeletionTarget(null)}
+      >
         <AlertDialogContent className="deletion-dialog">
           <AlertDialogHeader>
-            <span className="deletion-dialog-icon"><Trash2 size={19} aria-hidden="true" /></span>
+            <span className="deletion-dialog-icon">
+              <Trash2 size={19} aria-hidden="true" />
+            </span>
             <AlertDialogTitle>{deletionDialogTitle}</AlertDialogTitle>
-            <AlertDialogDescription>{deletionDialogDescription}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {deletionDialogDescription}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction className="confirm-delete-button" onClick={completeDeletion}>削除する</AlertDialogAction>
+            <AlertDialogAction
+              className="confirm-delete-button"
+              onClick={completeDeletion}
+            >
+              削除する
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
