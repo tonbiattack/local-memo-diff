@@ -11,6 +11,19 @@
 
 > デモで作成したメモは、アクセスしたブラウザだけに保存されます。共有端末では機密情報を保存しないでください。
 
+## Release
+
+最初の正式リリースは `v1.0.0` です。GitHub Pages の公開デモとGitHub Releaseを配布窓口とし、アカウント登録やサーバーへのメモ送信を必要としません。
+
+メモはブラウザの `localStorage` に保存されます。ブラウザのサイトデータを消す前や別端末へ移す前には、サイドバーの「バックアップ」からJSONファイルを保存してください。インポートは現在のメモを消さず、バックアップ内のメモを追加します。
+
+## Quick Start
+
+1. 「新しいメモ」から変更前の文章を作成します。
+2. 「複製」またはスナップショット保存で比較対象を用意します。
+3. 右側の BEFORE / AFTER を選び、Unified または Side-by-Side で差分を確認します。
+4. 必要に応じて `.txt`、HTML、またはJSONバックアップとしてローカルに出力します。
+
 ## Features
 
 | 機能                   | 内容                                                                                                             |
@@ -115,7 +128,9 @@ local-memo-diff/
 │  │  └─ favicon.svg             # GitHub Pages対応のSVGファビコン
 │  └─ src/
 │     ├─ components/
-│     │  └─ DiffWorkbench.tsx    # 差分表示・エクスポート
+│     │  ├─ DiffWorkbench.tsx    # 差分表示・エクスポート
+│     │  ├─ MemoSidebar.tsx      # メモ一覧・バックアップ操作
+│     │  └─ MemoDeletionDialogs.tsx # 削除確認ダイアログ
 │     ├─ lib/
 │     │  ├─ diff.ts              # 行単位Diffロジック
 │     │  └─ memo.ts              # メモモデル・自動タイトル
@@ -151,7 +166,7 @@ local-memo-diff/
 
 ## Roadmap Ideas
 
-今後の候補として、ショートカット一覧などを検討しています。
+今後の候補として、バックアップの上書き復元、同期ではない共有用エクスポート形式の改善などを検討しています。
 
 ## License
 
