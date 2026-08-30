@@ -18,15 +18,12 @@ import {
   Copy,
   ChevronUp,
   Clock3,
-  Download,
   FilePlus2,
   Files,
-  Upload,
   GitCompareArrows,
   GripVertical,
   History,
   Keyboard,
-  PanelRightOpen,
   PencilLine,
   Moon,
   Search,
@@ -36,16 +33,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import DiffWorkbench from "@/components/DiffWorkbench";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import MemoSidebar from "@/components/MemoSidebar";
+import MemoDeletionDialogs from "@/components/MemoDeletionDialogs";
 import {
   getBodyTitle,
   getNoteLabel,
@@ -113,7 +102,9 @@ export default function Home() {
   const [isBodySearchOpen, setIsBodySearchOpen] = useState(false);
   const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
   const [isSnapshotHistoryOpen, setIsSnapshotHistoryOpen] = useState(false);
-  const [snapshotDeletionTarget, setSnapshotDeletionTarget] = useState<string | null>(null);
+  const [snapshotDeletionTarget, setSnapshotDeletionTarget] = useState<
+    string | null
+  >(null);
   const [comparisonRequest, setComparisonRequest] = useState<{
     fromId: string;
     toId: string;
@@ -126,8 +117,9 @@ export default function Home() {
   );
   const [isHydrated, setIsHydrated] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const [workspaceSettings, setWorkspaceSettings] =
-    useState<WorkspaceSettings>(DEFAULT_WORKSPACE_SETTINGS);
+  const [workspaceSettings, setWorkspaceSettings] = useState<WorkspaceSettings>(
+    DEFAULT_WORKSPACE_SETTINGS
+  );
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const bodySearchRef = useRef<HTMLInputElement>(null);
@@ -320,12 +312,21 @@ export default function Home() {
   };
 
   const exportNotes = () => {
-    const blob = new Blob([JSON.stringify(createMemoBackup(notes, {
-      ...workspaceSettings,
-      theme,
-    }), null, 2)], {
-      type: "application/json;charset=utf-8",
-    });
+    const blob = new Blob(
+      [
+        JSON.stringify(
+          createMemoBackup(notes, {
+            ...workspaceSettings,
+            theme,
+          }),
+          null,
+          2
+        ),
+      ],
+      {
+        type: "application/json;charset=utf-8",
+      }
+    );
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -353,7 +354,8 @@ export default function Home() {
           return { ...note, id };
         });
         return [...incoming, ...current].sort(
-          (left, right) => +new Date(right.updatedAt) - +new Date(left.updatedAt)
+          (left, right) =>
+            +new Date(right.updatedAt) - +new Date(left.updatedAt)
         );
       });
       if (firstImportedId) setActiveId(firstImportedId);
@@ -363,7 +365,9 @@ export default function Home() {
       }
       toast.success(`${imported.length} 件のメモを追加しました`);
     } catch {
-      toast.error("バックアップを読み込めませんでした。JSONファイルを確認してください。");
+      toast.error(
+        "バックアップを読み込めませんでした。JSONファイルを確認してください。"
+      );
     }
   };
 
@@ -446,7 +450,9 @@ export default function Home() {
       window.removeEventListener("pointercancel", stopResize);
     };
     const moveResize = (moveEvent: PointerEvent) => {
-      setCompareWidth(clampCompareWidth(startWidth - (moveEvent.clientX - startX)));
+      setCompareWidth(
+        clampCompareWidth(startWidth - (moveEvent.clientX - startX))
+      );
     };
 
     handle.setPointerCapture(event.pointerId);
@@ -455,7 +461,9 @@ export default function Home() {
     window.addEventListener("pointercancel", stopResize);
   };
 
-  const onCompareResizeKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+  const onCompareResizeKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>
+  ) => {
     if (event.key === "ArrowLeft") {
       event.preventDefault();
       setCompareWidth(current => clampCompareWidth(current + 24));
@@ -485,129 +493,18 @@ export default function Home() {
       className="app-shell"
       style={{ "--compare-panel-width": `${compareWidth}px` } as CSSProperties}
     >
-      <aside className="sidebar" aria-label="メモ一覧">
-        <div className="brand-lockup">
-          <span className="brand-mark" aria-hidden="true">
-            <svg
-              viewBox="0 0 48 48"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 6.5H28L36 14.5V39.5H12V6.5Z"
-                fill="#EAF5FA"
-                stroke="#64B0E0"
-                strokeWidth="2"
-              />
-              <path d="M28 6.5V14.5H36" stroke="#64B0E0" strokeWidth="2" />
-              <path
-                d="M18 22H30M18 28H30"
-                stroke="#1769AA"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M16.5 35.5L21 31L24 34L31.5 26.5"
-                stroke="#78C39B"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <div>
-            <p className="brand-name">
-              memo <span>/</span> diff
-            </p>
-            <p className="brand-caption">LOCAL WORKSPACE</p>
-          </div>
-        </div>
-
-        <button className="new-note-button" type="button" onClick={createNote}>
-          <FilePlus2 aria-hidden="true" />
-          <span>新しいメモ</span>
-          <kbd>{/mac/i.test(navigator.platform) ? "⌥ N" : "Alt N"}</kbd>
-        </button>
-
-        <label className="search-field">
-          <Search aria-hidden="true" size={16} />
-          <input
-            value={query}
-            onChange={event => setQuery(event.target.value)}
-            placeholder="メモを検索"
-            aria-label="メモを検索"
-          />
-        </label>
-
-        <div className="list-heading">
-          <span>MEMOS</span>
-          <span>{notes.length.toString().padStart(2, "0")}</span>
-        </div>
-        <nav className="note-list" aria-label="保存されたメモ">
-          {filteredNotes.map(note => (
-            <button
-              className={`note-row ${note.id === activeId ? "is-active" : ""}`}
-              type="button"
-              onClick={() => setActiveId(note.id)}
-              key={note.id}
-            >
-              <span className="note-row-title">{getNoteLabel(note)}</span>
-              <span className="note-row-meta">
-                {formatDateTime(note.updatedAt)}
-              </span>
-            </button>
-          ))}
-          {!filteredNotes.length && (
-            <div className="sidebar-empty">
-              <PencilLine aria-hidden="true" size={18} />
-              <p>
-                {query
-                  ? "該当するメモはありません"
-                  : "最初のメモを書き始めましょう"}
-              </p>
-            </div>
-          )}
-        </nav>
-
-        <div className="backup-actions">
-          <button type="button" onClick={exportNotes} disabled={!notes.length}>
-            <Download size={15} aria-hidden="true" />
-            <span>バックアップ</span>
-          </button>
-          <button type="button" onClick={() => importInputRef.current?.click()}>
-            <Upload size={15} aria-hidden="true" />
-            <span>読み込む</span>
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={importNotes}
-            tabIndex={-1}
-          />
-        </div>
-
-        {notes.length > 0 && (
-          <button
-            className="delete-all-button"
-            type="button"
-            onClick={() => setDeletionTarget("all")}
-          >
-            <Trash2 size={15} aria-hidden="true" />
-            <span>全メモを削除</span>
-          </button>
-        )}
-
-        <div className="local-only-note">
-          <span className="local-pulse" aria-hidden="true" />
-          <p>
-            <b>この端末だけに保存中</b>
-            <br />
-            サーバーやDBへ送信しません
-          </p>
-        </div>
-      </aside>
-
+      <MemoSidebar
+        notes={notes}
+        activeId={activeId}
+        query={query}
+        onQueryChange={setQuery}
+        onCreateNote={createNote}
+        onSelectNote={setActiveId}
+        onExport={exportNotes}
+        onImport={importNotes}
+        importInputRef={importInputRef}
+        onDeleteAll={() => setDeletionTarget("all")}
+      />
       <main className="editor-stage">
         <header className="editor-header">
           <div className="breadcrumb">
@@ -632,8 +529,16 @@ export default function Home() {
               className="theme-toggle"
               type="button"
               onClick={toggleTheme}
-              title={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"}
-              aria-label={theme === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"}
+              title={
+                theme === "dark"
+                  ? "ライトモードに切り替え"
+                  : "ダークモードに切り替え"
+              }
+              aria-label={
+                theme === "dark"
+                  ? "ライトモードに切り替え"
+                  : "ダークモードに切り替え"
+              }
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -685,7 +590,9 @@ export default function Home() {
               >
                 <BookmarkPlus size={15} aria-hidden="true" />
                 <span>保存</span>
-                <kbd>{/mac/i.test(navigator.platform) ? "⌘ ⇧ S" : "Ctrl ⇧ S"}</kbd>
+                <kbd>
+                  {/mac/i.test(navigator.platform) ? "⌘ ⇧ S" : "Ctrl ⇧ S"}
+                </kbd>
               </button>
             )}
             {activeNote && (
@@ -715,11 +622,38 @@ export default function Home() {
               >
                 <h2>ショートカット</h2>
                 <dl>
-                  <div><dt><kbd>{/mac/i.test(navigator.platform) ? "⌥ N" : "Alt N"}</kbd></dt><dd>新しいメモ</dd></div>
-                  <div><dt><kbd>⌘ / Ctrl F</kbd></dt><dd>本文内を検索</dd></div>
-                  <div><dt><kbd>⌘ / Ctrl S</kbd></dt><dd>現在の内容を保存</dd></div>
-                  <div><dt><kbd>⌘ / Ctrl ⇧ S</kbd></dt><dd>スナップショットを保存</dd></div>
-                  <div><dt><kbd>Esc</kbd></dt><dd>検索・一覧を閉じる</dd></div>
+                  <div>
+                    <dt>
+                      <kbd>
+                        {/mac/i.test(navigator.platform) ? "⌥ N" : "Alt N"}
+                      </kbd>
+                    </dt>
+                    <dd>新しいメモ</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <kbd>⌘ / Ctrl F</kbd>
+                    </dt>
+                    <dd>本文内を検索</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <kbd>⌘ / Ctrl S</kbd>
+                    </dt>
+                    <dd>現在の内容を保存</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <kbd>⌘ / Ctrl ⇧ S</kbd>
+                    </dt>
+                    <dd>スナップショットを保存</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <kbd>Esc</kbd>
+                    </dt>
+                    <dd>検索・一覧を閉じる</dd>
+                  </div>
                 </dl>
               </section>
             )}
@@ -737,10 +671,17 @@ export default function Home() {
                     <li key={snapshot.id}>
                       <div>
                         <b>{snapshot.title || "無題のメモ"}</b>
-                        <span>{index === 0 ? "直前の保存" : formatDateTime(snapshot.createdAt)}</span>
+                        <span>
+                          {index === 0
+                            ? "直前の保存"
+                            : formatDateTime(snapshot.createdAt)}
+                        </span>
                       </div>
                       <div className="snapshot-actions">
-                        <button type="button" onClick={() => compareWithSnapshot(snapshot.id)}>
+                        <button
+                          type="button"
+                          onClick={() => compareWithSnapshot(snapshot.id)}
+                        >
                           比較
                         </button>
                         <button
@@ -915,7 +856,6 @@ export default function Home() {
           </section>
         )}
       </main>
-
       <button
         className="compare-resize-handle"
         type="button"
@@ -931,7 +871,6 @@ export default function Home() {
       >
         <GripVertical size={16} aria-hidden="true" />
       </button>
-
       <aside className="compare-stage" aria-label="差分比較">
         <div className="compare-topline">
           <div>
@@ -954,55 +893,18 @@ export default function Home() {
           <span>変更の全文を含む差分をエクスポートできます</span>
         </div>
       </aside>
-
-      <AlertDialog
-        open={deletionTarget !== null}
-        onOpenChange={open => !open && setDeletionTarget(null)}
-      >
-        <AlertDialogContent className="deletion-dialog">
-          <AlertDialogHeader>
-            <span className="deletion-dialog-icon">
-              <Trash2 size={19} aria-hidden="true" />
-            </span>
-            <AlertDialogTitle>{deletionDialogTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletionDialogDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction
-              className="confirm-delete-button"
-              onClick={completeDeletion}
-            >
-              削除する
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={snapshotDeletionTarget !== null}
-        onOpenChange={open => !open && setSnapshotDeletionTarget(null)}
-      >
-        <AlertDialogContent className="deletion-dialog">
-          <AlertDialogHeader>
-            <span className="deletion-dialog-icon">
-              <Trash2 size={19} aria-hidden="true" />
-            </span>
-            <AlertDialogTitle>スナップショットを削除しますか？</AlertDialogTitle>
-            <AlertDialogDescription>
-              この保存履歴は取り消せません。現在のメモは削除されません。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction className="confirm-delete-button" onClick={deleteSnapshot}>
-              削除する
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <MemoDeletionDialogs
+        deletionTarget={deletionTarget}
+        onDeletionOpenChange={open => !open && setDeletionTarget(null)}
+        deletionTitle={deletionDialogTitle}
+        deletionDescription={deletionDialogDescription}
+        onDeleteMemo={completeDeletion}
+        isSnapshotDeletionOpen={snapshotDeletionTarget !== null}
+        onSnapshotDeletionOpenChange={open =>
+          !open && setSnapshotDeletionTarget(null)
+        }
+        onDeleteSnapshot={deleteSnapshot}
+      />{" "}
     </div>
   );
 }
