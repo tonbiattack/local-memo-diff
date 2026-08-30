@@ -69,7 +69,7 @@ textarea:focus-visible {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 280px minmax(380px, 1fr) 352px;
+  grid-template-columns: 280px minmax(380px, 1fr) 12px var(--compare-panel-width, 352px);
   background: #f3f5f7;
 }
 
@@ -397,6 +397,27 @@ kbd {
   min-width: 0;
   padding: 0 clamp(18px, 4vw, 54px);
   background: #f3f5f7;
+}
+.compare-resize-handle {
+  display: grid;
+  min-width: 0;
+  padding: 0;
+  color: #7d8987;
+  border: 0;
+  border-inline: 1px solid #d5d7d4;
+  background: #edf0ef;
+  cursor: col-resize;
+  place-items: center;
+  touch-action: none;
+}
+.compare-resize-handle:hover,
+.compare-resize-handle:focus-visible {
+  color: #1769aa;
+  background: #dcecf7;
+  outline: 0;
+}
+.compare-resize-handle:focus-visible {
+  box-shadow: inset 0 0 0 2px rgb(23 105 170 / 40%);
 }
 .editor-header {
   display: flex;
@@ -1068,6 +1089,9 @@ kbd {
 @media (max-width: 1100px) {
   .app-shell {
     grid-template-columns: 245px minmax(380px, 1fr);
+  }
+  .compare-resize-handle {
+    display: none;
   }
   .compare-stage {
     grid-column: 1 / -1;
