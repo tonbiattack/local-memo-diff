@@ -24,6 +24,8 @@ import {
   Upload,
   GitCompareArrows,
   GripVertical,
+  History,
+  Keyboard,
   PanelRightOpen,
   PencilLine,
   Moon,
@@ -109,6 +111,14 @@ export default function Home() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [isBodySearchOpen, setIsBodySearchOpen] = useState(false);
+  const [isShortcutHelpOpen, setIsShortcutHelpOpen] = useState(false);
+  const [isSnapshotHistoryOpen, setIsSnapshotHistoryOpen] = useState(false);
+  const [snapshotDeletionTarget, setSnapshotDeletionTarget] = useState<string | null>(null);
+  const [comparisonRequest, setComparisonRequest] = useState<{
+    fromId: string;
+    toId: string;
+    id: string;
+  } | null>(null);
   const [bodySearch, setBodySearch] = useState("");
   const [activeMatch, setActiveMatch] = useState(0);
   const [deletionTarget, setDeletionTarget] = useState<"active" | "all" | null>(
@@ -182,6 +192,12 @@ export default function Home() {
       }
       if (event.key === "Escape" && isBodySearchOpen) {
         closeBodySearch();
+      }
+      if (event.key === "Escape" && isShortcutHelpOpen) {
+        setIsShortcutHelpOpen(false);
+      }
+      if (event.key === "Escape" && isSnapshotHistoryOpen) {
+        setIsSnapshotHistoryOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -272,6 +288,35 @@ export default function Home() {
       )
     );
     toast.success("スナップショットを保存しました");
+  };
+
+  const compareWithSnapshot = (snapshotId: string) => {
+    if (!activeNote) return;
+    setComparisonRequest({
+      fromId: `${activeNote.id}:snapshot:${snapshotId}`,
+      toId: activeNote.id,
+      id: crypto.randomUUID(),
+    });
+    setIsSnapshotHistoryOpen(false);
+    toast.success("現在のメモとスナップショットを比較します");
+  };
+
+  const deleteSnapshot = () => {
+    if (!activeNote || !snapshotDeletionTarget) return;
+    setNotes(current =>
+      current.map(note =>
+        note.id === activeNote.id
+          ? {
+              ...note,
+              snapshots: (note.snapshots ?? []).filter(
+                snapshot => snapshot.id !== snapshotDeletionTarget
+              ),
+            }
+          : note
+      )
+    );
+    setSnapshotDeletionTarget(null);
+    toast.success("スナップショットを削除しました");
   };
 
   const exportNotes = () => {
@@ -571,6 +616,19 @@ export default function Home() {
           </div>
           <div className="editor-actions">
             <button
+              className="shortcut-help-trigger"
+              type="button"
+              onClick={() => {
+                setIsShortcutHelpOpen(current => !current);
+                setIsSnapshotHistoryOpen(false);
+              }}
+              aria-expanded={isShortcutHelpOpen}
+              aria-controls="shortcut-help"
+            >
+              <Keyboard size={16} aria-hidden="true" />
+              <span>ショートカット</span>
+            </button>
+            <button
               className="theme-toggle"
               type="button"
               onClick={toggleTheme}
@@ -589,6 +647,22 @@ export default function Home() {
                 <Search size={15} aria-hidden="true" />
                 <span>本文内を検索</span>
                 <kbd>⌘ F</kbd>
+              </button>
+            )}
+            {activeNote && (activeNote.snapshots?.length ?? 0) > 0 && (
+              <button
+                className="note-action-button"
+                type="button"
+                onClick={() => {
+                  setIsSnapshotHistoryOpen(current => !current);
+                  setIsShortcutHelpOpen(false);
+                }}
+                aria-expanded={isSnapshotHistoryOpen}
+                aria-controls="snapshot-history"
+                title="スナップショットの比較と削除"
+              >
+                <History size={15} aria-hidden="true" />
+                <span>履歴 {activeNote.snapshots?.length}</span>
               </button>
             )}
             {activeNote && (
@@ -632,6 +706,57 @@ export default function Home() {
                 {savedAt ? formatDateTime(savedAt) : ""}
               </span>
             </div>
+            {isShortcutHelpOpen && (
+              <section
+                className="shortcut-help"
+                id="shortcut-help"
+                role="dialog"
+                aria-label="ショートカット一覧"
+              >
+                <h2>ショートカット</h2>
+                <dl>
+                  <div><dt><kbd>{/mac/i.test(navigator.platform) ? "⌥ N" : "Alt N"}</kbd></dt><dd>新しいメモ</dd></div>
+                  <div><dt><kbd>⌘ / Ctrl F</kbd></dt><dd>本文内を検索</dd></div>
+                  <div><dt><kbd>⌘ / Ctrl S</kbd></dt><dd>現在の内容を保存</dd></div>
+                  <div><dt><kbd>⌘ / Ctrl ⇧ S</kbd></dt><dd>スナップショットを保存</dd></div>
+                  <div><dt><kbd>Esc</kbd></dt><dd>検索・一覧を閉じる</dd></div>
+                </dl>
+              </section>
+            )}
+            {isSnapshotHistoryOpen && activeNote && (
+              <section
+                className="snapshot-history"
+                id="snapshot-history"
+                role="dialog"
+                aria-label="スナップショット履歴"
+              >
+                <h2>スナップショット</h2>
+                <p>現在のメモと比較するか、不要な保存を削除できます。</p>
+                <ul>
+                  {(activeNote.snapshots ?? []).map((snapshot, index) => (
+                    <li key={snapshot.id}>
+                      <div>
+                        <b>{snapshot.title || "無題のメモ"}</b>
+                        <span>{index === 0 ? "直前の保存" : formatDateTime(snapshot.createdAt)}</span>
+                      </div>
+                      <div className="snapshot-actions">
+                        <button type="button" onClick={() => compareWithSnapshot(snapshot.id)}>
+                          比較
+                        </button>
+                        <button
+                          type="button"
+                          className="delete-snapshot-button"
+                          onClick={() => setSnapshotDeletionTarget(snapshot.id)}
+                          aria-label={`${snapshot.title || "無題のメモ"}のスナップショットを削除`}
+                        >
+                          <Trash2 size={14} aria-hidden="true" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
         </header>
 
@@ -822,6 +947,7 @@ export default function Home() {
           onViewModeChange={diffViewMode =>
             setWorkspaceSettings(current => ({ ...current, diffViewMode }))
           }
+          comparisonRequest={comparisonRequest ?? undefined}
         />
         <div className="compare-footnote">
           <GripVertical size={16} />
@@ -849,6 +975,29 @@ export default function Home() {
               className="confirm-delete-button"
               onClick={completeDeletion}
             >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={snapshotDeletionTarget !== null}
+        onOpenChange={open => !open && setSnapshotDeletionTarget(null)}
+      >
+        <AlertDialogContent className="deletion-dialog">
+          <AlertDialogHeader>
+            <span className="deletion-dialog-icon">
+              <Trash2 size={19} aria-hidden="true" />
+            </span>
+            <AlertDialogTitle>スナップショットを削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              この保存履歴は取り消せません。現在のメモは削除されません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction className="confirm-delete-button" onClick={deleteSnapshot}>
               削除する
             </AlertDialogAction>
           </AlertDialogFooter>
