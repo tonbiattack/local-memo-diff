@@ -11,8 +11,10 @@ import {
   Copy,
   ChevronUp,
   Clock3,
+  Download,
   FilePlus2,
   Files,
+  Upload,
   GitCompareArrows,
   GripVertical,
   PanelRightOpen,
@@ -37,9 +39,11 @@ import {
   getBodyTitle,
   getNoteLabel,
   formatDateTime,
+  createMemoBackup,
   makeNote,
   makeSnapshot,
   MemoNote,
+  parseMemoBackup,
   STORAGE_KEY,
 } from "@/lib/memo";
 
@@ -91,6 +95,7 @@ export default function Home() {
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const bodySearchRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const saved = loadNotes().sort(
@@ -220,6 +225,46 @@ export default function Home() {
       )
     );
     toast.success("スナップショットを保存しました");
+  };
+
+  const exportNotes = () => {
+    const blob = new Blob([JSON.stringify(createMemoBackup(notes), null, 2)], {
+      type: "application/json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `memo-diff-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${notes.length} 件のメモをバックアップしました`);
+  };
+
+  const importNotes = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      const imported = parseMemoBackup(JSON.parse(await file.text()));
+      let firstImportedId: string | null = null;
+      setNotes(current => {
+        const knownIds = new Set(current.map(note => note.id));
+        const incoming = imported.map(note => {
+          const id = knownIds.has(note.id) ? crypto.randomUUID() : note.id;
+          knownIds.add(id);
+          firstImportedId ??= id;
+          return { ...note, id };
+        });
+        return [...incoming, ...current].sort(
+          (left, right) => +new Date(right.updatedAt) - +new Date(left.updatedAt)
+        );
+      });
+      if (firstImportedId) setActiveId(firstImportedId);
+      toast.success(`${imported.length} 件のメモを追加しました`);
+    } catch {
+      toast.error("バックアップを読み込めませんでした。JSONファイルを確認してください。");
+    }
   };
 
   const openBodySearch = () => {
@@ -423,6 +468,24 @@ export default function Home() {
             </div>
           )}
         </nav>
+
+        <div className="backup-actions">
+          <button type="button" onClick={exportNotes} disabled={!notes.length}>
+            <Download size={15} aria-hidden="true" />
+            <span>バックアップ</span>
+          </button>
+          <button type="button" onClick={() => importInputRef.current?.click()}>
+            <Upload size={15} aria-hidden="true" />
+            <span>読み込む</span>
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={importNotes}
+            tabIndex={-1}
+          />
+        </div>
 
         {notes.length > 0 && (
           <button

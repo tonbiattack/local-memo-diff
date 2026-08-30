@@ -147,6 +147,35 @@ textarea:focus-visible {
   color: #fff;
   background: rgb(201 75 75 / 18%);
 }
+.backup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 14px;
+}
+.backup-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 34px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  color: #b8c9cf;
+  background: transparent;
+  font: 500 10px/1 "IBM Plex Mono", monospace;
+}
+.backup-actions button:hover {
+  border-color: #64b0e0;
+  color: #fff;
+  background: rgb(100 176 224 / 15%);
+}
+.backup-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.backup-actions input {
+  display: none;
+}
 
 .new-note-button,
 .primary-ink-button {
